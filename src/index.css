@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-navy: #0d1b2a;
+  --color-brand-amber: #f39c12;
+}
+
+body {
+  background-color: #08101a;
+  color: white;
+}
