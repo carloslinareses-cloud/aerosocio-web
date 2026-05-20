@@ -35,6 +35,26 @@ function readPaymentFromUrl() {
   return { plan: params.get('plan') === 'annual' ? 'annual' : 'monthly' };
 }
 
+const SUMUP_SDK_URL = 'https://gateway.sumup.com/gateway/ecom/card/v2/sdk.js';
+
+function loadSumupSdk() {
+  if (window.SumUpCard) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[src="${SUMUP_SDK_URL}"]`);
+    if (existing) {
+      existing.addEventListener('load', () => resolve());
+      existing.addEventListener('error', () => reject(new Error('No se pudo cargar el SDK de SumUp')));
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = SUMUP_SDK_URL;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('No se pudo cargar el SDK de SumUp'));
+    document.body.appendChild(script);
+  });
+}
+
 function App() {
   const [user, setUser] = useState(null);
   const [modalContent, setModalContent] = useState(null);
@@ -43,6 +63,9 @@ function App() {
   const [shipping, setShipping] = useState(EMPTY_SHIPPING);
   const [shippingStatus, setShippingStatus] = useState('idle'); // 'idle'|'sending'|'done'
   const [shippingError, setShippingError] = useState('');
+  // Widget de pago SumUp (in-page)
+  const [sumupCheckout, setSumupCheckout] = useState(null); // { checkoutId, plan } | null
+  const [sumupError, setSumupError] = useState('');
 
   // Verificar si hay sesión activa al cargar
   useEffect(() => {
@@ -72,6 +95,42 @@ function App() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [modalContent]);
+
+  // Montar widget SumUp cuando hay un checkout listo
+  useEffect(() => {
+    if (!sumupCheckout) return;
+    let cancelled = false;
+
+    loadSumupSdk()
+      .then(() => {
+        if (cancelled || !window.SumUpCard) return;
+        const container = document.getElementById('sumup-card');
+        if (container) container.innerHTML = '';
+        window.SumUpCard.mount({
+          id: 'sumup-card',
+          checkoutId: sumupCheckout.checkoutId,
+          email: user?.email,
+          locale: 'es-ES',
+          country: 'ES',
+          showSubmitButton: true,
+          onResponse: (type, body) => {
+            console.log('SumUp event:', type, body);
+            if (type === 'success') {
+              setSumupCheckout(null);
+              setPaymentSuccess({ plan: sumupCheckout.plan });
+            } else if (type === 'error') {
+              setSumupError(body?.message || 'El pago no se pudo procesar. Revisa los datos de tu tarjeta o prueba con otra.');
+            }
+          },
+        });
+      })
+      .catch((err) => {
+        console.error(err);
+        setSumupError(err.message);
+      });
+
+    return () => { cancelled = true; };
+  }, [sumupCheckout, user]);
 
   const handleShippingSubmit = async (e) => {
     e.preventDefault();
@@ -134,26 +193,31 @@ function App() {
     }
 
     setIsLoadingPayment(true);
+    setSumupError('');
     try {
       const { data, error } = await supabase.functions.invoke('crear-pago-sumup', {
         body: { planType, userEmail: user.email },
       });
-
       if (error) throw new Error(error.message || 'No se pudo contactar con el servidor de pagos.');
-
-      if (data?.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
-        return;
+      const checkoutId = data?.checkoutId || data?.id;
+      if (!checkoutId) {
+        console.error('Respuesta SumUp inesperada:', data);
+        throw new Error('SumUp no devolvió un ID de checkout válido.');
       }
-
-      console.error('Respuesta SumUp inesperada:', data);
-      alert('No pudimos iniciar el pago en SumUp. Inténtalo de nuevo en unos minutos o escríbenos a carlos.linares.es@gmail.com.');
+      setSumupCheckout({ checkoutId, plan: planType });
     } catch (err) {
       console.error('Error de pago:', err);
       alert('Error procesando el pago: ' + err.message);
     } finally {
       setIsLoadingPayment(false);
     }
+  };
+
+  const closeSumupCheckout = () => {
+    setSumupCheckout(null);
+    setSumupError('');
+    const container = document.getElementById('sumup-card');
+    if (container) container.innerHTML = '';
   };
 
   // Función para Scroll Suave
@@ -401,6 +465,32 @@ function App() {
             <div className="mt-8 flex justify-end">
               <button onClick={() => setModalContent(null)} className="bg-brand-amber text-brand-navy font-bold py-3 px-8 rounded-full hover:bg-yellow-400 transition-colors">Aceptar y Cerrar</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {sumupCheckout && (
+        <div
+          className="fixed inset-0 z-[105] bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Completar pago"
+        >
+          <div className="bg-brand-navy border border-white/10 rounded-3xl p-6 md:p-8 max-w-lg w-full relative shadow-2xl">
+            <button onClick={closeSumupCheckout} aria-label="Cancelar pago" className="absolute top-5 right-5 text-slate-400 hover:text-white">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <h3 className="text-2xl font-bold tracking-tight mb-1">Completa tu pago</h3>
+            <p className="text-slate-400 text-sm mb-5">
+              {sumupCheckout.plan === 'annual'
+                ? 'Plan Anual + Baliza V16 — €49'
+                : 'Plan Mensual — €5'}
+            </p>
+            {sumupError && (
+              <p className="text-sm text-red-300 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 mb-4">{sumupError}</p>
+            )}
+            <div id="sumup-card" className="bg-white rounded-2xl p-4 min-h-[360px]"></div>
+            <p className="text-[11px] text-slate-500 mt-4 text-center">Pago seguro procesado por SumUp. AeroSocio no almacena los datos de tu tarjeta.</p>
           </div>
         </div>
       )}
