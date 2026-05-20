@@ -374,11 +374,12 @@ function App() {
       paragraphs: [
         { text: 'Bienvenido a AeroSocio. Al contratar cualquiera de nuestras membresías, aceptas las presentes condiciones generales de servicio:' },
         { heading: 'Objeto del Servicio', text: 'AeroSocio presta un servicio digital de suscripción que incluye la gestión documental de archivos del vehículo y conductor encriptados en la nube, alertas automatizadas preventivas sobre el vencimiento de la ITV y seguros, y un sistema asistido de auto-servicio para la gestión de reclamaciones por retrasos o cancelaciones de vuelos.' },
-        { heading: 'Planes y Facturación', text: 'Se establecen dos modalidades de suscripción:', bullets: [
+        { heading: 'Planes y Facturación', text: 'Se establecen tres modalidades de suscripción:', bullets: [
           'Plan Mensual: con un coste de 5€ al mes, renovable automáticamente de forma periódica.',
-          'Plan Anual + Baliza: con un coste de 49€ al año, renovable automáticamente de forma anual.',
-        ], footer: 'Ambas suscripciones pueden ser canceladas por el usuario en cualquier momento desde su perfil antes del siguiente ciclo de facturación.' },
-        { heading: 'Incentivo de la Baliza V16', text: 'Los usuarios que contraten y abonen la modalidad de Plan Anual tendrán derecho a recibir de forma totalmente gratuita una baliza de emergencia V16 homologada por la DGT en su domicilio (promoción válida para envíos dentro del territorio español peninsular y sujeta a disponibilidad de stock). El plan mensual no incluye, en ningún caso, la entrega de este dispositivo físico.' },
+          'Plan Anual + Baliza: con un coste de 49€ al año, renovable automáticamente de forma anual. Incluye el envío gratuito de una baliza de emergencia V16 homologada por la DGT.',
+          'Plan VIP+: con un coste de 99€ al año, renovable automáticamente de forma anual. Incluye todos los beneficios del Plan Anual más servicio de concierge por WhatsApp y prioridad en todos los servicios del Marketplace AeroSocio.',
+        ], footer: 'Cualquier suscripción puede ser cancelada por el usuario en cualquier momento desde su perfil antes del siguiente ciclo de facturación.' },
+        { heading: 'Incentivo de la Baliza V16', text: 'Los usuarios que contraten y abonen la modalidad de Plan Anual o Plan VIP+ tendrán derecho a recibir de forma totalmente gratuita una baliza de emergencia V16 homologada por la DGT en su domicilio (promoción válida para envíos dentro del territorio español peninsular y sujeta a disponibilidad de stock). El plan mensual no incluye, en ningún caso, la entrega de este dispositivo físico.' },
         { heading: 'Limitación de Responsabilidad', text: 'AeroSocio es una plataforma informativa de alertas y herramientas de asistencia. La responsabilidad final de pasar la ITV en plazo, renovar las pólizas de seguro obligatorias o tramitar las reclamaciones legales oportunas ante las aerolíneas recae única y exclusivamente sobre el titular del vehículo o el pasajero del vuelo.' },
       ],
     },
