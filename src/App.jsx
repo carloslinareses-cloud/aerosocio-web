@@ -18,7 +18,8 @@ const ShineBorder = () => (
 
 function App() {
   const [user, setUser] = useState(null);
-  const [modalContent, setModalContent] = useState(null); // Para los modales legales
+  const [modalContent, setModalContent] = useState(null); 
+  const [isLoadingPayment, setIsLoadingPayment] = useState(false);
 
   // Verificar si hay sesión activa al cargar
   useEffect(() => {
@@ -47,6 +48,34 @@ function App() {
   // Función para Cerrar Sesión
   const handleLogout = async () => {
     await supabase.auth.signOut();
+  };
+
+  // --- LÓGICA DE PAGO SUMUP SEGURA ---
+  const handlePayment = async (planType) => {
+    if (!user) {
+      alert("Por favor, inicia sesión con Google primero para asociar tu membresía.");
+      handleGoogleLogin();
+      return;
+    }
+
+    setIsLoadingPayment(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('crear-pago-sumup', {
+        body: { planType, userEmail: user.email }
+      });
+
+      if (error) throw error;
+      if (data?.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else {
+        alert("Error al generar el enlace de pago.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error al conectar con el sistema de pagos. Intenta de nuevo.");
+    } finally {
+      setIsLoadingPayment(false);
+    }
   };
 
   // Función para Scroll Suave
@@ -102,7 +131,7 @@ function App() {
         </div>
       </nav>
 
-      {/* Hero Section - Funciona como sección "Membresía" y "Cómo Funciona" */}
+      {/* Hero Section */}
       <main id="como-funciona" className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-32 grid lg:grid-cols-[1.5fr,1fr] gap-10 md:gap-16 items-center">
         <div className="absolute inset-0 z-0 flex rounded-[40px] overflow-hidden border border-white/5">
           <div className="w-[60%] h-full bg-cover bg-left opacity-30" style={{backgroundImage: 'url(https://images.unsplash.com/photo-1544016768-6820f8987107?q=80&w=2000)'}}></div>
@@ -127,20 +156,20 @@ function App() {
             Gestionamos tu tranquilidad. Evita multas, organiza documentos en la nube y reclama tus vuelos retrasados. Únete hoy y llévate de regalo la nueva Baliza V16 conectada enviada a tu domicilio.
           </p>
 
-          {/* Panel de Suscripción (Membresía) */}
-          <div id="membresia" className="relative group p-6 md:p-8 rounded-3xl md:rounded-4xl bg-white/5 border border-white/10 backdrop-blur-md overflow-hidden max-w-xl">
-            <ShineBorder />
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative z-10">
-              <div className="space-y-1">
-                <span className="text-xs md:text-sm font-medium text-slate-400">MEMBRESÍA VIP ESPAÑA</span>
-                <p className="text-4xl font-extrabold tracking-tight">€49 <span className="text-base md:text-lg font-normal text-slate-400">/año</span></p>
-                <div className="text-[10px] md:text-xs text-green-400 bg-green-950/50 border border-green-800 inline-block px-3 py-1 rounded-full font-medium">STATUS: ACTIVO</div>
-              </div>
-              <button className="w-full sm:w-auto text-center relative flex-shrink-0 bg-gradient-to-b from-brand-amber to-yellow-500 text-brand-navy text-lg md:text-xl font-extrabold py-4 px-8 md:py-5 md:px-10 rounded-full transition-all duration-300 transform sm:group-hover:scale-105 shadow-[0_10px_30px_rgba(243,156,18,0.3)]">
-                <span className="relative z-10">UNIRSE AL CLUB VIP</span>
-              </button>
-            </div>
+          {/* Panel de Suscripción con Planes */}
+          <div id="membresia" className="grid sm:grid-cols-2 gap-4 max-w-xl">
+             <button onClick={() => handlePayment('monthly')} disabled={isLoadingPayment} className="p-6 rounded-3xl bg-white/5 border border-white/10 hover:border-white/30 transition-all text-left">
+                <span className="text-xs text-slate-400 uppercase tracking-widest">Plan Mensual</span>
+                <p className="text-3xl font-bold mt-1">€5 <span className="text-base text-slate-500">/mes</span></p>
+             </button>
+             <button onClick={() => handlePayment('annual')} disabled={isLoadingPayment} className="relative p-6 rounded-3xl bg-white/5 border border-brand-amber/50 hover:border-brand-amber transition-all text-left group">
+                <ShineBorder />
+                <span className="text-xs font-bold text-brand-amber uppercase tracking-widest">Plan Anual + Baliza</span>
+                <p className="text-3xl font-bold mt-1">€49 <span className="text-base text-slate-500">/año</span></p>
+                <div className="absolute top-4 right-4 text-[10px] bg-brand-amber text-black px-2 py-0.5 rounded-full font-bold">RECOMENDADO</div>
+             </button>
           </div>
+          
           <p className="text-slate-500 text-xs md:text-sm flex items-center gap-2 justify-start md:pl-8">
             <svg className="w-4 h-4 md:w-5 md:h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             Incluye envío gratuito de la baliza a toda España.
@@ -164,7 +193,6 @@ function App() {
         </div>
       </main>
 
-      {/* Servicios Grid */}
       <section id="servicios" className="bg-white/[0.02] backdrop-blur-xl py-20 md:py-32 border-t border-white/5 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12 md:mb-20 max-w-3xl mx-auto space-y-2">
@@ -190,7 +218,6 @@ function App() {
         </div>
       </section>
 
-      {/* Footer Minimalista */}
       <footer className="bg-[#04080e] py-10 md:py-16 border-t border-white/5">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6 text-xs md:text-sm text-slate-500">
           <div className="flex items-center gap-2 md:gap-3 opacity-60">
@@ -206,7 +233,6 @@ function App() {
         </div>
       </footer>
 
-      {/* Modal para Documentos Legales */}
       {modalContent && (
         <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-brand-navy border border-white/10 rounded-3xl p-8 max-w-2xl w-full relative">
@@ -216,7 +242,6 @@ function App() {
             <h3 className="text-3xl font-bold mb-6">{modalContent.title}</h3>
             <div className="text-slate-300 leading-relaxed max-h-[60vh] overflow-y-auto pr-4 custom-scrollbar">
               <p>{modalContent.text}</p>
-              {/* Aquí luego puedes expandir con textos largos reales */}
             </div>
             <div className="mt-8 flex justify-end">
               <button onClick={() => setModalContent(null)} className="bg-brand-amber text-brand-navy font-bold py-3 px-8 rounded-full hover:bg-yellow-400 transition-colors">Aceptar y Cerrar</button>
