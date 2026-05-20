@@ -28,6 +28,13 @@ const EMPTY_SHIPPING = {
   phone: '',
 };
 
+const EMPTY_PARKING = {
+  destino: '',
+  fechaEntrada: '',
+  fechaSalida: '',
+  email: '',
+};
+
 function readPaymentFromUrl() {
   if (typeof window === 'undefined') return null;
   const params = new URLSearchParams(window.location.search);
@@ -66,6 +73,10 @@ function App() {
   // Widget de pago SumUp (in-page)
   const [sumupCheckout, setSumupCheckout] = useState(null); // { checkoutId, plan } | null
   const [sumupError, setSumupError] = useState('');
+  // Buscador de parking (Fase 1: captura de demanda)
+  const [parking, setParking] = useState(EMPTY_PARKING);
+  const [parkingStatus, setParkingStatus] = useState('idle'); // 'idle'|'sending'|'done'
+  const [parkingError, setParkingError] = useState('');
 
   // Verificar si hay sesión activa al cargar
   useEffect(() => {
@@ -220,6 +231,39 @@ function App() {
     if (container) container.innerHTML = '';
   };
 
+  const handleParkingSubmit = async (e) => {
+    e.preventDefault();
+    setParkingError('');
+    const destino = parking.destino.trim();
+    const email = (parking.email || user?.email || '').trim();
+    const { fechaEntrada, fechaSalida } = parking;
+    if (!destino || !fechaEntrada || !fechaSalida || !email) {
+      setParkingError('Completa todos los campos.');
+      return;
+    }
+    if (new Date(fechaSalida) <= new Date(fechaEntrada)) {
+      setParkingError('La fecha de salida tiene que ser posterior a la de entrada.');
+      return;
+    }
+    setParkingStatus('sending');
+    try {
+      const { error } = await supabase.from('solicitudes_parking').insert({
+        user_id: user?.id || null,
+        email,
+        destino,
+        fecha_entrada: fechaEntrada,
+        fecha_salida: fechaSalida,
+        estado: 'pendiente',
+      });
+      if (error) throw error;
+      setParkingStatus('done');
+    } catch (err) {
+      console.error('Error guardando solicitud de parking:', err);
+      setParkingError(err.message || 'No pudimos registrar tu búsqueda. Inténtalo de nuevo en unos minutos.');
+      setParkingStatus('idle');
+    }
+  };
+
   // Función para Scroll Suave
   const scrollToSection = (id) => {
     const element = document.getElementById(id);
@@ -289,6 +333,7 @@ function App() {
             <button onClick={() => scrollToSection('como-funciona')} className="px-5 py-2 rounded-full hover:bg-white/5 transition-colors">¿Cómo Funciona?</button>
             <button onClick={() => scrollToSection('membresia')} className="px-5 py-2 rounded-full hover:bg-white/5 transition-colors">Membresía VIP</button>
             <button onClick={() => scrollToSection('servicios')} className="px-5 py-2 rounded-full hover:bg-white/5 transition-colors">Servicios</button>
+            <button onClick={() => scrollToSection('parking')} className="px-5 py-2 rounded-full hover:bg-white/5 transition-colors">Parking</button>
           </div>
           
           {user ? (
@@ -414,6 +459,103 @@ function App() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section id="parking" className="py-20 md:py-32 border-t border-white/5 relative z-10 overflow-hidden">
+        <GlowEffect className="w-[400px] h-[400px] bg-blue-500 top-0 -right-32" />
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 relative">
+          <div className="text-center mb-10 md:mb-14 max-w-3xl mx-auto">
+            <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 text-blue-300 font-bold px-4 py-2 rounded-full text-xs uppercase tracking-widest mb-5">
+              <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+              Próximamente
+            </div>
+            <h3 className="text-3xl md:text-5xl lg:text-6xl font-extrabold tracking-tighter mb-4">
+              Buscador de <span className="text-transparent bg-clip-text bg-gradient-to-b from-brand-amber to-yellow-200">Parking</span> al mejor precio
+            </h3>
+            <p className="text-slate-400 text-base md:text-xl leading-relaxed">
+              Comparamos por ti los principales parkings de aeropuertos y centros urbanos de España. Tú nos dices dónde y cuándo, te enviamos la mejor opción a tu email.
+            </p>
+          </div>
+
+          {parkingStatus === 'done' ? (
+            <div className="max-w-xl mx-auto bg-emerald-500/10 border border-emerald-500/30 rounded-3xl p-8 text-center">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-500/20 mb-4">
+                <svg className="w-7 h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path></svg>
+              </div>
+              <h4 className="text-2xl font-bold mb-2">¡Anotado!</h4>
+              <p className="text-emerald-200/80">Te enviamos la mejor opción a <strong className="text-white">{parking.email || user?.email}</strong> en menos de 24h.</p>
+              <button
+                onClick={() => { setParking(EMPTY_PARKING); setParkingStatus('idle'); }}
+                className="mt-6 text-sm text-emerald-300 hover:text-white transition-colors underline"
+              >
+                Hacer otra búsqueda
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleParkingSubmit} className="max-w-2xl mx-auto bg-white/5 border border-white/10 rounded-3xl p-6 md:p-8 backdrop-blur-xl space-y-4">
+              <div>
+                <label className="text-xs text-slate-400 uppercase tracking-widest font-bold">Destino</label>
+                <input
+                  required
+                  type="text"
+                  placeholder="Ej: Madrid-Barajas, Barcelona aeropuerto, Málaga centro…"
+                  value={parking.destino}
+                  onChange={(e) => setParking(p => ({ ...p, destino: e.target.value }))}
+                  className="mt-2 w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-amber transition-colors"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-slate-400 uppercase tracking-widest font-bold">Entrada</label>
+                  <input
+                    required
+                    type="date"
+                    value={parking.fechaEntrada}
+                    onChange={(e) => setParking(p => ({ ...p, fechaEntrada: e.target.value }))}
+                    className="mt-2 w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-amber transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 uppercase tracking-widest font-bold">Salida</label>
+                  <input
+                    required
+                    type="date"
+                    value={parking.fechaSalida}
+                    onChange={(e) => setParking(p => ({ ...p, fechaSalida: e.target.value }))}
+                    className="mt-2 w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-amber transition-colors"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 uppercase tracking-widest font-bold">Email donde te enviamos la oferta</label>
+                <input
+                  required
+                  type="email"
+                  placeholder={user?.email || 'tu@email.com'}
+                  value={parking.email || user?.email || ''}
+                  onChange={(e) => setParking(p => ({ ...p, email: e.target.value }))}
+                  className="mt-2 w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-amber transition-colors"
+                />
+              </div>
+
+              {parkingError && (
+                <p className="text-sm text-red-300 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3">{parkingError}</p>
+              )}
+
+              <button
+                type="submit"
+                disabled={parkingStatus === 'sending'}
+                className="w-full bg-brand-amber text-brand-navy font-bold py-3.5 rounded-full hover:bg-yellow-400 transition-colors disabled:opacity-60 disabled:cursor-wait"
+              >
+                {parkingStatus === 'sending' ? 'Buscando…' : 'Encuéntrame el mejor precio'}
+              </button>
+
+              <p className="text-[11px] text-slate-500 text-center pt-2">
+                Servicio gratuito de prelanzamiento. Sin spam, sin compromiso de compra.
+              </p>
+            </form>
+          )}
         </div>
       </section>
 
