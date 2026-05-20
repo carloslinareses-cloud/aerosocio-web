@@ -35,6 +35,51 @@ const EMPTY_PARKING = {
   email: '',
 };
 
+const MARKETPLACE = {
+  gestoria: {
+    titulo: 'Servicios de Gestoría',
+    descripcion: 'Te ahorramos colas, papeleo y trámites. Lo hacemos por ti.',
+    items: [
+      { id: 'recurso-multa', icon: '⚖️', titulo: 'Recurso de Multa DGT', desc: 'Analizamos tu multa, redactamos y presentamos el recurso. Si no ganamos, te devolvemos.', precio: '9,90€', disponible: true },
+      { id: 'cita-itv', icon: '🔧', titulo: 'Cita ITV Exprés', desc: 'Te gestionamos cita prioritaria en la ITV más cercana en menos de 24h.', precio: '5€', disponible: true },
+      { id: 'renovar-carnet', icon: '🪪', titulo: 'Renovación Carnet de Conducir', desc: 'Gestión completa: fotos, certificado médico y trámite en Tráfico.', precio: 'Desde 25€', disponible: true },
+      { id: 'transferencia-coche', icon: '🚗', titulo: 'Transferencia Compraventa', desc: 'Cambio de titularidad del vehículo todo incluido (tasas + gestión).', precio: '79€', disponible: true },
+    ],
+  },
+  viajes: {
+    titulo: 'Viajes y Movilidad',
+    descripcion: 'Búsqueda y reserva al mejor precio. Tú eliges, nosotros comparamos.',
+    items: [
+      { id: 'parking', icon: '🅿️', titulo: 'Parking Aeropuertos', desc: 'Comparamos los parkings cercanos y te enviamos la mejor oferta.', precio: 'Gratis', disponible: true, ancla: 'parking' },
+      { id: 'reclamacion-vuelo', icon: '✈️', titulo: 'Reclamación de Vuelo', desc: 'Vuelo retrasado o cancelado. Tramitamos tu indemnización hasta 600€.', precio: 'Sin coste si no ganamos', disponible: true },
+      { id: 'hotel', icon: '🏨', titulo: 'Hoteles al Mejor Precio', desc: 'Encontramos el alojamiento más barato según tus fechas y destino.', precio: 'Comisión 0 socios', disponible: false },
+      { id: 'alquiler-coche', icon: '🚙', titulo: 'Coche de Alquiler', desc: 'Comparamos las principales rentadoras para tu ruta.', precio: 'Comisión 0 socios', disponible: false },
+      { id: 'esim', icon: '📱', titulo: 'eSIM Internacional', desc: 'Datos móviles en 190 países sin roaming. Activación en 5 min.', precio: 'Desde 5€', disponible: false },
+      { id: 'seguro-viaje', icon: '🛡️', titulo: 'Seguro de Viaje', desc: 'Coberturas médicas y de cancelación con primas preferentes.', precio: 'Desde 12€', disponible: false },
+      { id: 'transfer', icon: '🚕', titulo: 'Transfer al Aeropuerto', desc: 'Reserva tu traslado privado puerta-a-puerta con antelación.', precio: 'Desde 25€', disponible: false },
+    ],
+  },
+  productos: {
+    titulo: 'Productos AeroSocio',
+    descripcion: 'Accesorios curados para el viajero y conductor moderno.',
+    items: [
+      { id: 'baliza-premium', icon: '🚨', titulo: 'Baliza V16 Premium', desc: 'Con SIM 12 años incluida. Compatible con DGT 3.0. Envío gratis socios VIP.', precio: '49€', disponible: true },
+      { id: 'kit-emergencia', icon: '🧰', titulo: 'Kit Emergencia Coche', desc: 'Chaleco reflectante, triángulos, botiquín y linterna LED en estuche.', precio: '29€', disponible: true },
+      { id: 'tag-gps', icon: '📍', titulo: 'Localizador GPS Bluetooth', desc: 'Para llaves, maletas o coche. Compatible Apple/Android.', precio: '25€', disponible: true },
+      { id: 'soporte-movil', icon: '📲', titulo: 'Soporte Móvil Coche', desc: 'Magnético con carga inalámbrica. Instalación al salpicadero.', precio: '15€', disponible: true },
+    ],
+  },
+  futuro: {
+    titulo: 'En Desarrollo',
+    descripcion: 'Servicios que llegarán en los próximos meses para socios VIP+.',
+    items: [
+      { id: 'asistencia-24h', icon: '🛟', titulo: 'Asistencia en Carretera 24h', desc: 'Grúa, taller móvil y vehículo de sustitución en toda España.', precio: 'Incluido VIP+', disponible: false },
+      { id: 'concierge', icon: '💬', titulo: 'Concierge WhatsApp', desc: 'Línea directa con un gestor para cualquier duda de movilidad.', precio: 'Incluido VIP+', disponible: false },
+      { id: 'flotas', icon: '🏢', titulo: 'AeroSocio para Empresas', desc: 'Gestión de flotas (10+ vehículos): alertas, multas y mantenimiento centralizado.', precio: 'Desde 5€/vehículo', disponible: false },
+    ],
+  },
+};
+
 function readPaymentFromUrl() {
   if (typeof window === 'undefined') return null;
   const params = new URLSearchParams(window.location.search);
@@ -77,6 +122,11 @@ function App() {
   const [parking, setParking] = useState(EMPTY_PARKING);
   const [parkingStatus, setParkingStatus] = useState('idle'); // 'idle'|'sending'|'done'
   const [parkingError, setParkingError] = useState('');
+  // Marketplace: solicitud de un servicio cualquiera
+  const [servicio, setServicio] = useState(null); // { id, titulo, disponible, precio } | null
+  const [servicioForm, setServicioForm] = useState({ email: '', detalles: '' });
+  const [servicioStatus, setServicioStatus] = useState('idle');
+  const [servicioError, setServicioError] = useState('');
 
   // Verificar si hay sesión activa al cargar
   useEffect(() => {
@@ -231,6 +281,51 @@ function App() {
     if (container) container.innerHTML = '';
   };
 
+  const openServicio = (item) => {
+    if (item.ancla) {
+      scrollToSection(item.ancla);
+      return;
+    }
+    setServicio(item);
+    setServicioForm({ email: user?.email || '', detalles: '' });
+    setServicioStatus('idle');
+    setServicioError('');
+  };
+
+  const closeServicio = () => {
+    setServicio(null);
+    setServicioStatus('idle');
+    setServicioError('');
+  };
+
+  const handleServicioSubmit = async (e) => {
+    e.preventDefault();
+    setServicioError('');
+    const email = servicioForm.email.trim();
+    const detalles = servicioForm.detalles.trim();
+    if (!email || !detalles) {
+      setServicioError('Completa email y detalles.');
+      return;
+    }
+    setServicioStatus('sending');
+    try {
+      const { error } = await supabase.from('solicitudes_servicios').insert({
+        user_id: user?.id || null,
+        email,
+        tipo: servicio.id,
+        titulo: servicio.titulo,
+        detalles,
+        estado: 'pendiente',
+      });
+      if (error) throw error;
+      setServicioStatus('done');
+    } catch (err) {
+      console.error('Error guardando solicitud servicio:', err);
+      setServicioError(err.message || 'No pudimos registrar tu solicitud. Inténtalo de nuevo.');
+      setServicioStatus('idle');
+    }
+  };
+
   const handleParkingSubmit = async (e) => {
     e.preventDefault();
     setParkingError('');
@@ -333,7 +428,7 @@ function App() {
             <button onClick={() => scrollToSection('como-funciona')} className="px-5 py-2 rounded-full hover:bg-white/5 transition-colors">¿Cómo Funciona?</button>
             <button onClick={() => scrollToSection('membresia')} className="px-5 py-2 rounded-full hover:bg-white/5 transition-colors">Membresía VIP</button>
             <button onClick={() => scrollToSection('servicios')} className="px-5 py-2 rounded-full hover:bg-white/5 transition-colors">Servicios</button>
-            <button onClick={() => scrollToSection('parking')} className="px-5 py-2 rounded-full hover:bg-white/5 transition-colors">Parking</button>
+            <button onClick={() => scrollToSection('marketplace')} className="px-5 py-2 rounded-full hover:bg-white/5 transition-colors">Marketplace</button>
           </div>
           
           {user ? (
@@ -378,20 +473,27 @@ function App() {
           </p>
 
           {/* Panel de Suscripción con Planes */}
-          <div id="membresia" className="grid sm:grid-cols-2 gap-4 max-w-xl">
-             <button onClick={() => handlePayment('monthly')} disabled={isLoadingPayment} className="p-6 rounded-3xl bg-white/5 border border-white/10 hover:border-white/30 transition-all text-left disabled:opacity-60 disabled:cursor-wait">
-                <span className="text-xs text-slate-400 uppercase tracking-widest">Plan Mensual</span>
-                <p className="text-3xl font-bold mt-1">€5 <span className="text-base text-slate-500">/mes</span></p>
-                {isLoadingPayment && <p className="text-xs text-slate-400 mt-2">Redirigiendo a SumUp…</p>}
+          <div id="membresia" className="grid sm:grid-cols-3 gap-3 max-w-3xl">
+             <button onClick={() => handlePayment('monthly')} disabled={isLoadingPayment} className="p-5 rounded-3xl bg-white/5 border border-white/10 hover:border-white/30 transition-all text-left disabled:opacity-60 disabled:cursor-wait">
+                <span className="text-[10px] text-slate-400 uppercase tracking-widest">Mensual</span>
+                <p className="text-2xl md:text-3xl font-bold mt-1">€5 <span className="text-sm text-slate-500">/mes</span></p>
+                <p className="text-[11px] text-slate-500 mt-2">Alertas y gestión documental</p>
              </button>
-             <button onClick={() => handlePayment('annual')} disabled={isLoadingPayment} className="relative p-6 rounded-3xl bg-white/5 border border-brand-amber/50 hover:border-brand-amber transition-all text-left group disabled:opacity-60 disabled:cursor-wait">
+             <button onClick={() => handlePayment('annual')} disabled={isLoadingPayment} className="relative p-5 rounded-3xl bg-white/5 border border-brand-amber/50 hover:border-brand-amber transition-all text-left group disabled:opacity-60 disabled:cursor-wait">
                 <ShineBorder />
-                <span className="text-xs font-bold text-brand-amber uppercase tracking-widest">Plan Anual + Baliza</span>
-                <p className="text-3xl font-bold mt-1">€49 <span className="text-base text-slate-500">/año</span></p>
-                <div className="absolute top-4 right-4 text-[10px] bg-brand-amber text-black px-2 py-0.5 rounded-full font-bold">RECOMENDADO</div>
-                {isLoadingPayment && <p className="text-xs text-slate-400 mt-2">Redirigiendo a SumUp…</p>}
+                <span className="text-[10px] font-bold text-brand-amber uppercase tracking-widest">Anual + Baliza</span>
+                <p className="text-2xl md:text-3xl font-bold mt-1">€49 <span className="text-sm text-slate-500">/año</span></p>
+                <p className="text-[11px] text-slate-500 mt-2">Incluye baliza V16 DGT</p>
+                <div className="absolute top-3 right-3 text-[9px] bg-brand-amber text-black px-2 py-0.5 rounded-full font-bold">POPULAR</div>
+             </button>
+             <button onClick={() => handlePayment('vipplus')} disabled={isLoadingPayment} className="relative p-5 rounded-3xl bg-gradient-to-br from-brand-amber/15 to-yellow-200/5 border border-yellow-200/40 hover:border-yellow-200 transition-all text-left disabled:opacity-60 disabled:cursor-wait">
+                <span className="text-[10px] font-bold text-yellow-200 uppercase tracking-widest">VIP+</span>
+                <p className="text-2xl md:text-3xl font-bold mt-1">€99 <span className="text-sm text-slate-500">/año</span></p>
+                <p className="text-[11px] text-slate-400 mt-2">Concierge WhatsApp + prioridad en todos los servicios</p>
+                <div className="absolute top-3 right-3 text-[9px] bg-gradient-to-r from-brand-amber to-yellow-200 text-black px-2 py-0.5 rounded-full font-bold">PREMIUM</div>
              </button>
           </div>
+          {isLoadingPayment && <p className="text-xs text-slate-400">Redirigiendo a SumUp…</p>}
           
           <p className="text-slate-500 text-xs md:text-sm flex items-center gap-2 justify-start md:pl-8">
             <svg className="w-4 h-4 md:w-5 md:h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -459,6 +561,72 @@ function App() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section id="marketplace" className="py-20 md:py-32 border-t border-white/5 relative z-10">
+        <GlowEffect className="w-[400px] h-[400px] bg-brand-amber top-1/3 -left-32" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 relative">
+          <div className="text-center mb-12 md:mb-16 max-w-3xl mx-auto">
+            <div className="inline-flex items-center gap-2 bg-brand-amber/10 border border-brand-amber/30 text-brand-amber font-bold px-4 py-2 rounded-full text-xs uppercase tracking-widest mb-5">
+              Marketplace de Socios
+            </div>
+            <h3 className="text-3xl md:text-5xl lg:text-6xl font-extrabold tracking-tighter mb-4">
+              Un solo sitio para tu <span className="text-transparent bg-clip-text bg-gradient-to-b from-brand-amber to-yellow-200">vida en movimiento</span>
+            </h3>
+            <p className="text-slate-400 text-base md:text-xl leading-relaxed">
+              Gestoría, viajes y productos curados. Lo que está disponible lo puedes solicitar hoy; lo demás llega muy pronto.
+            </p>
+          </div>
+
+          <div className="space-y-14">
+            {Object.entries(MARKETPLACE).map(([key, cat]) => (
+              <div key={key}>
+                <div className="mb-6 md:mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-2">
+                  <div>
+                    <h4 className="text-2xl md:text-3xl font-extrabold tracking-tight">{cat.titulo}</h4>
+                    <p className="text-slate-400 text-sm md:text-base mt-1">{cat.descripcion}</p>
+                  </div>
+                </div>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
+                  {cat.items.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => openServicio(item)}
+                      className={`group relative text-left p-5 md:p-6 rounded-3xl border transition-all duration-300 overflow-hidden ${
+                        item.disponible
+                          ? 'bg-white/5 border-white/10 hover:border-brand-amber hover:-translate-y-1'
+                          : 'bg-white/[0.02] border-white/5 hover:border-blue-500/40'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="text-3xl md:text-4xl">{item.icon}</div>
+                        <span className={`text-[9px] md:text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full border ${
+                          item.disponible
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                            : 'bg-blue-500/10 border-blue-500/30 text-blue-300'
+                        }`}>
+                          {item.disponible ? 'Disponible' : 'Próximamente'}
+                        </span>
+                      </div>
+                      <h5 className="text-base md:text-lg font-bold tracking-tight mb-1.5">{item.titulo}</h5>
+                      <p className="text-xs md:text-sm text-slate-400 leading-relaxed mb-4 line-clamp-3">{item.desc}</p>
+                      <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                        <span className="text-sm font-bold text-brand-amber">{item.precio}</span>
+                        <span className="text-xs text-slate-400 group-hover:text-brand-amber transition-colors">
+                          {item.disponible ? 'Solicitar →' : 'Avisarme →'}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-center text-slate-500 text-xs md:text-sm mt-12 max-w-2xl mx-auto">
+            Los servicios marcados como "Próximamente" se irán activando conforme cerramos acuerdos con proveedores. Apuntate al servicio que más te interese y te avisaremos en cuanto esté listo, sin compromiso.
+          </p>
         </div>
       </section>
 
@@ -607,6 +775,90 @@ function App() {
             <div className="mt-8 flex justify-end">
               <button onClick={() => setModalContent(null)} className="bg-brand-amber text-brand-navy font-bold py-3 px-8 rounded-full hover:bg-yellow-400 transition-colors">Aceptar y Cerrar</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {servicio && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={closeServicio}
+          role="dialog"
+          aria-modal="true"
+          aria-label={servicio.titulo}
+        >
+          <div
+            className="bg-brand-navy border border-white/10 rounded-3xl p-6 md:p-8 max-w-lg w-full relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button onClick={closeServicio} aria-label="Cerrar" className="absolute top-5 right-5 text-slate-400 hover:text-white">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+
+            {servicioStatus === 'done' ? (
+              <div className="text-center py-4">
+                <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-500/15 border border-emerald-500/30 mb-4">
+                  <svg className="w-7 h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path></svg>
+                </div>
+                <h3 className="text-2xl font-bold mb-2">¡Solicitud recibida!</h3>
+                <p className="text-slate-300 mb-1">{servicio.disponible
+                  ? 'Te contactamos en menos de 24h para arrancar la gestión.'
+                  : 'Te avisaremos en cuanto el servicio esté disponible.'}</p>
+                <p className="text-xs text-slate-500 mt-3">Te confirmamos en <strong className="text-white">{servicioForm.email}</strong>.</p>
+                <button onClick={closeServicio} className="mt-6 bg-brand-amber text-brand-navy font-bold py-2.5 px-6 rounded-full hover:bg-yellow-400 transition-colors">Cerrar</button>
+              </div>
+            ) : (
+              <form onSubmit={handleServicioSubmit}>
+                <div className="flex items-start gap-3 mb-1">
+                  <span className="text-3xl">{servicio.icon}</span>
+                  <div className="flex-1">
+                    <h3 className="text-xl md:text-2xl font-bold tracking-tight">{servicio.titulo}</h3>
+                    <p className="text-xs text-slate-400">{servicio.precio} · {servicio.disponible ? 'Disponible ahora' : 'Próximamente'}</p>
+                  </div>
+                </div>
+                <p className="text-sm text-slate-300 mb-5 mt-2">{servicio.desc}</p>
+
+                <label className="text-xs text-slate-400 uppercase tracking-widest font-bold">Email</label>
+                <input
+                  required
+                  type="email"
+                  placeholder="tu@email.com"
+                  value={servicioForm.email}
+                  onChange={(e) => setServicioForm(s => ({ ...s, email: e.target.value }))}
+                  className="mt-2 mb-4 w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-amber transition-colors"
+                />
+
+                <label className="text-xs text-slate-400 uppercase tracking-widest font-bold">Cuéntanos los detalles</label>
+                <textarea
+                  required
+                  rows={4}
+                  placeholder={servicio.disponible
+                    ? 'Ej: número de matrícula, fecha de la multa, tipo de infracción…'
+                    : 'Cuéntanos qué buscas exactamente para priorizar este servicio en el roadmap.'}
+                  value={servicioForm.detalles}
+                  onChange={(e) => setServicioForm(s => ({ ...s, detalles: e.target.value }))}
+                  className="mt-2 w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-amber transition-colors resize-none"
+                />
+
+                {servicioError && (
+                  <p className="text-sm text-red-300 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 mt-4">{servicioError}</p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={servicioStatus === 'sending'}
+                  className="mt-5 w-full bg-brand-amber text-brand-navy font-bold py-3 rounded-full hover:bg-yellow-400 transition-colors disabled:opacity-60 disabled:cursor-wait"
+                >
+                  {servicioStatus === 'sending'
+                    ? 'Enviando…'
+                    : (servicio.disponible ? 'Solicitar servicio' : 'Avisarme cuando esté listo')}
+                </button>
+
+                <p className="text-[11px] text-slate-500 text-center mt-3">
+                  Sin coste por registrarte. {servicio.disponible ? 'El precio mostrado se cobra al completar el servicio.' : 'Te avisaremos sin compromiso.'}
+                </p>
+              </form>
+            )}
           </div>
         </div>
       )}
