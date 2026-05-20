@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-// --- CONFIGURACIÓN DE SUPABASE ---
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseKey || 'placeholder');
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Faltan VITE_SUPABASE_URL o VITE_SUPABASE_ANON_KEY en el .env');
+}
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Componente decorativo para los destellos de luz de fondo
 const GlowEffect = ({ className }) => (
@@ -16,10 +18,31 @@ const ShineBorder = () => (
   <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-amber/50 to-transparent"></div>
 );
 
+const EMPTY_SHIPPING = {
+  fullName: '',
+  addressLine1: '',
+  addressLine2: '',
+  postalCode: '',
+  city: '',
+  province: '',
+  phone: '',
+};
+
+function readPaymentFromUrl() {
+  if (typeof window === 'undefined') return null;
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('pago') !== 'ok') return null;
+  return { plan: params.get('plan') === 'annual' ? 'annual' : 'monthly' };
+}
+
 function App() {
   const [user, setUser] = useState(null);
-  const [modalContent, setModalContent] = useState(null); 
+  const [modalContent, setModalContent] = useState(null);
   const [isLoadingPayment, setIsLoadingPayment] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(readPaymentFromUrl);
+  const [shipping, setShipping] = useState(EMPTY_SHIPPING);
+  const [shippingStatus, setShippingStatus] = useState('idle'); // 'idle'|'sending'|'done'
+  const [shippingError, setShippingError] = useState('');
 
   // Verificar si hay sesión activa al cargar
   useEffect(() => {
@@ -33,6 +56,59 @@ function App() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Si veníamos de SumUp con ?pago=ok, limpiamos la URL una vez detectado
+  useEffect(() => {
+    if (paymentSuccess && window.location.search) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Cerrar modal con tecla Escape
+  useEffect(() => {
+    if (!modalContent) return;
+    const onKey = (e) => { if (e.key === 'Escape') setModalContent(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [modalContent]);
+
+  const handleShippingSubmit = async (e) => {
+    e.preventDefault();
+    if (!user) {
+      setShippingError('Tu sesión ha expirado. Inicia sesión con Google de nuevo para guardar tu dirección.');
+      return;
+    }
+    setShippingStatus('sending');
+    setShippingError('');
+    try {
+      const { error } = await supabase.from('envios_baliza').insert({
+        user_id: user.id,
+        user_email: user.email,
+        full_name: shipping.fullName.trim(),
+        address_line_1: shipping.addressLine1.trim(),
+        address_line_2: shipping.addressLine2.trim() || null,
+        postal_code: shipping.postalCode.trim(),
+        city: shipping.city.trim(),
+        province: shipping.province.trim(),
+        phone: shipping.phone.trim(),
+        status: 'pending',
+      });
+      if (error) throw error;
+      setShippingStatus('done');
+    } catch (err) {
+      console.error('Error guardando dirección:', err);
+      setShippingError(err.message || 'No pudimos guardar tu dirección. Inténtalo de nuevo en unos minutos o escríbenos a carlos.linares.es@gmail.com.');
+      setShippingStatus('idle');
+    }
+  };
+
+  const closePaymentSuccess = () => {
+    setPaymentSuccess(null);
+    setShipping(EMPTY_SHIPPING);
+    setShippingStatus('idle');
+    setShippingError('');
+  };
 
   // Función para Login con Google
   const handleGoogleLogin = async () => {
@@ -50,10 +126,9 @@ function App() {
     await supabase.auth.signOut();
   };
 
-  // --- LÓGICA DE PAGO SUMUP SEGURA ---
   const handlePayment = async (planType) => {
     if (!user) {
-      alert("Por favor, inicia sesión con Google primero para asociar tu membresía.");
+      alert('Inicia sesión con Google primero para asociar tu membresía.');
       handleGoogleLogin();
       return;
     }
@@ -61,18 +136,21 @@ function App() {
     setIsLoadingPayment(true);
     try {
       const { data, error } = await supabase.functions.invoke('crear-pago-sumup', {
-        body: { planType, userEmail: user.email }
+        body: { planType, userEmail: user.email },
       });
 
-      if (error) throw error;
+      if (error) throw new Error(error.message || 'No se pudo contactar con el servidor de pagos.');
+
       if (data?.checkoutUrl) {
         window.location.href = data.checkoutUrl;
-      } else {
-        alert("Error al generar el enlace de pago.");
+        return;
       }
+
+      console.error('Respuesta SumUp inesperada:', data);
+      alert('No pudimos iniciar el pago en SumUp. Inténtalo de nuevo en unos minutos o escríbenos a carlos.linares.es@gmail.com.');
     } catch (err) {
-      console.error(err);
-      alert("Error al conectar con el sistema de pagos. Intenta de nuevo.");
+      console.error('Error de pago:', err);
+      alert('Error procesando el pago: ' + err.message);
     } finally {
       setIsLoadingPayment(false);
     }
@@ -86,11 +164,45 @@ function App() {
     }
   };
 
-  // Contenidos Legales
+  // Contenidos Legales (RGPD + LSSI-CE)
   const legalDocs = {
-    terminos: { title: "Términos Legales", text: "Aquí van los términos y condiciones del servicio AeroSocio..." },
-    privacidad: { title: "Política de Privacidad", text: "Tus datos están encriptados y protegidos según la RGPD europea..." },
-    cookies: { title: "Política de Cookies", text: "Usamos cookies estrictamente necesarias para la plataforma..." }
+    terminos: {
+      title: 'Términos y Condiciones Legales',
+      paragraphs: [
+        { text: 'Bienvenido a AeroSocio. Al contratar cualquiera de nuestras membresías, aceptas las presentes condiciones generales de servicio:' },
+        { heading: 'Objeto del Servicio', text: 'AeroSocio presta un servicio digital de suscripción que incluye la gestión documental de archivos del vehículo y conductor encriptados en la nube, alertas automatizadas preventivas sobre el vencimiento de la ITV y seguros, y un sistema asistido de auto-servicio para la gestión de reclamaciones por retrasos o cancelaciones de vuelos.' },
+        { heading: 'Planes y Facturación', text: 'Se establecen dos modalidades de suscripción:', bullets: [
+          'Plan Mensual: con un coste de 5€ al mes, renovable automáticamente de forma periódica.',
+          'Plan Anual + Baliza: con un coste de 49€ al año, renovable automáticamente de forma anual.',
+        ], footer: 'Ambas suscripciones pueden ser canceladas por el usuario en cualquier momento desde su perfil antes del siguiente ciclo de facturación.' },
+        { heading: 'Incentivo de la Baliza V16', text: 'Los usuarios que contraten y abonen la modalidad de Plan Anual tendrán derecho a recibir de forma totalmente gratuita una baliza de emergencia V16 homologada por la DGT en su domicilio (promoción válida para envíos dentro del territorio español peninsular y sujeta a disponibilidad de stock). El plan mensual no incluye, en ningún caso, la entrega de este dispositivo físico.' },
+        { heading: 'Limitación de Responsabilidad', text: 'AeroSocio es una plataforma informativa de alertas y herramientas de asistencia. La responsabilidad final de pasar la ITV en plazo, renovar las pólizas de seguro obligatorias o tramitar las reclamaciones legales oportunas ante las aerolíneas recae única y exclusivamente sobre el titular del vehículo o el pasajero del vuelo.' },
+      ],
+    },
+    privacidad: {
+      title: 'Política de Privacidad (RGPD)',
+      paragraphs: [
+        { text: 'En cumplimiento del Reglamento General de Protección de Datos (RGPD) y la normativa española vigente, te informamos detalladamente sobre cómo tratamos tus datos personales:' },
+        { heading: 'Responsable del Tratamiento', text: 'AeroSocio, con correo electrónico de contacto de soporte técnico y administrativo: carlos.linares.es@gmail.com.' },
+        { heading: 'Datos Recopilados', text: 'Al iniciar sesión a través del sistema seguro de Google, recopilamos tu nombre, dirección de correo electrónico y foto de perfil público. Adicionalmente, recopilamos los datos técnicos de tu vehículo (matrícula y fechas de vencimiento) que decidas introducir de manera voluntaria para el correcto funcionamiento del sistema de alertas.' },
+        { heading: 'Finalidad del Tratamiento', text: 'Tus datos se utilizan exclusivamente para gestionar tu cuenta de socio en la plataforma, automatizar el envío de alertas críticas de tus vehículos vía email o mensajería, tramitar los envíos postales de las balizas V16 a los suscriptores anuales y emitir las facturas correspondientes.' },
+        { heading: 'Seguridad Financiera (SumUp)', text: 'Los pagos de las membresías se procesan de forma 100% externa y cifrada a través de la pasarela de pagos segura de SumUp. AeroSocio no almacena, no ve, ni tiene acceso a los datos de tus tarjetas de crédito o credenciales bancarias.' },
+        { heading: 'Tus Derechos', text: 'Tienes derecho a acceder, rectificar, limitar o borrar de forma definitiva todos tus datos de nuestros servidores. Para ejercer estos derechos, solo debes enviar una solicitud por correo electrónico a carlos.linares.es@gmail.com.' },
+      ],
+    },
+    cookies: {
+      title: 'Política de Cookies',
+      paragraphs: [
+        { text: 'De acuerdo con las directrices de la Agencia Española de Protección de Datos (AEPD) y la LSSI-CE, te informamos sobre el uso de cookies en esta plataforma:' },
+        { heading: '¿Qué cookies usamos?', text: 'Este sitio web utiliza única y exclusivamente cookies técnicas, operativas y de sesión que son estrictamente esenciales para que la plataforma funcione.' },
+        { heading: 'Cookies de Terceros Esenciales', bullets: [
+          'Supabase: utiliza cookies de autenticación segura para mantener tu sesión de socio abierta en tu navegador y evitar que tengas que iniciar sesión con Google cada vez que cambias de pestaña.',
+          'SumUp: utiliza cookies técnicas durante el proceso de pago para garantizar que la transacción financiera se realice de forma segura y sin interrupciones.',
+        ] },
+        { heading: 'Cookies de Rastreo', text: 'AeroSocio no utiliza cookies analíticas ni de rastreo publicitario de terceros (como Google Analytics o Facebook Pixel) sin tu consentimiento previo.' },
+        { heading: 'Desactivación', text: 'Puedes bloquear o eliminar las cookies instaladas en tu equipo configurando las opciones de privacidad de tu navegador de internet. Ten en cuenta que si deshabilitas por completo las cookies técnicas, el área privada de socios y la pasarela de pago dejarán de funcionar correctamente.' },
+      ],
+    },
   };
 
   return (
@@ -158,15 +270,17 @@ function App() {
 
           {/* Panel de Suscripción con Planes */}
           <div id="membresia" className="grid sm:grid-cols-2 gap-4 max-w-xl">
-             <button onClick={() => handlePayment('monthly')} disabled={isLoadingPayment} className="p-6 rounded-3xl bg-white/5 border border-white/10 hover:border-white/30 transition-all text-left">
+             <button onClick={() => handlePayment('monthly')} disabled={isLoadingPayment} className="p-6 rounded-3xl bg-white/5 border border-white/10 hover:border-white/30 transition-all text-left disabled:opacity-60 disabled:cursor-wait">
                 <span className="text-xs text-slate-400 uppercase tracking-widest">Plan Mensual</span>
                 <p className="text-3xl font-bold mt-1">€5 <span className="text-base text-slate-500">/mes</span></p>
+                {isLoadingPayment && <p className="text-xs text-slate-400 mt-2">Redirigiendo a SumUp…</p>}
              </button>
-             <button onClick={() => handlePayment('annual')} disabled={isLoadingPayment} className="relative p-6 rounded-3xl bg-white/5 border border-brand-amber/50 hover:border-brand-amber transition-all text-left group">
+             <button onClick={() => handlePayment('annual')} disabled={isLoadingPayment} className="relative p-6 rounded-3xl bg-white/5 border border-brand-amber/50 hover:border-brand-amber transition-all text-left group disabled:opacity-60 disabled:cursor-wait">
                 <ShineBorder />
                 <span className="text-xs font-bold text-brand-amber uppercase tracking-widest">Plan Anual + Baliza</span>
                 <p className="text-3xl font-bold mt-1">€49 <span className="text-base text-slate-500">/año</span></p>
                 <div className="absolute top-4 right-4 text-[10px] bg-brand-amber text-black px-2 py-0.5 rounded-full font-bold">RECOMENDADO</div>
+                {isLoadingPayment && <p className="text-xs text-slate-400 mt-2">Redirigiendo a SumUp…</p>}
              </button>
           </div>
           
@@ -202,16 +316,37 @@ function App() {
 
           <div className="grid md:grid-cols-3 gap-6 md:gap-8">
             {[
-              {icon: '💻', title: 'Alertas Inteligentes', desc: 'Monitoreamos tu vehículo y te avisamos por WhatsApp antes de que caduque tu seguro o ITV para evitar multas de €200.', color: 'brand-amber', status: 'AHORRA EN MULTAS'},
-              {icon: '✈️', title: 'Reclamación de Vuelos', desc: '¿Vuelo retrasado o cancelado? Nuestro equipo legal gestiona tu indemnización sin comisiones abusivas.', color: 'blue-500', status: 'SIN COMISIONES'},
-              {icon: '📄', title: 'Gestión Documental', desc: 'Todos tus documentos del coche y conductor seguros y organizados encriptadamente en nuestra nube VIP.', color: 'emerald-500', status: 'SEGURIDAD TOTAL'}
-            ].map((item, index) => (
-              <div key={index} className="relative group p-6 md:p-10 rounded-3xl bg-brand-navy/60 border border-white/5 md:hover:border-brand-amber transition-all duration-300 md:hover:-translate-y-2 overflow-hidden">
+              {
+                icon: '💻',
+                title: 'Alertas Inteligentes',
+                desc: 'Monitoreamos tu vehículo y te avisamos por WhatsApp antes de que caduque tu seguro o ITV para evitar multas de €200.',
+                status: 'AHORRA EN MULTAS',
+                iconBox: 'border-brand-amber/20 bg-brand-amber/10',
+                badge: 'text-brand-amber bg-brand-amber/10 border-brand-amber/20',
+              },
+              {
+                icon: '✈️',
+                title: 'Reclamación de Vuelos',
+                desc: '¿Vuelo retrasado o cancelado? Nuestro equipo legal gestiona tu indemnización sin comisiones abusivas.',
+                status: 'SIN COMISIONES',
+                iconBox: 'border-blue-500/20 bg-blue-500/10',
+                badge: 'text-blue-500 bg-blue-500/10 border-blue-500/20',
+              },
+              {
+                icon: '📄',
+                title: 'Gestión Documental',
+                desc: 'Todos tus documentos del coche y conductor seguros y organizados encriptadamente en nuestra nube VIP.',
+                status: 'SEGURIDAD TOTAL',
+                iconBox: 'border-emerald-500/20 bg-emerald-500/10',
+                badge: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20',
+              },
+            ].map((item) => (
+              <div key={item.title} className="relative group p-6 md:p-10 rounded-3xl bg-brand-navy/60 border border-white/5 md:hover:border-brand-amber transition-all duration-300 md:hover:-translate-y-2 overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-brand-amber/10 to-transparent opacity-0 md:group-hover:opacity-100 transition-opacity blur-2xl"></div>
-                <div className={`w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center mb-6 md:mb-8 border border-${item.color}/20 bg-${item.color}/10 text-2xl md:text-4xl`}>{item.icon}</div>
+                <div className={`w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center mb-6 md:mb-8 border text-2xl md:text-4xl ${item.iconBox}`}>{item.icon}</div>
                 <h4 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-white tracking-tight">{item.title}</h4>
                 <p className="text-sm md:text-base text-slate-400 leading-relaxed mb-6">{item.desc}</p>
-                <div className={`text-[10px] md:text-xs font-bold text-${item.color} bg-${item.color}/10 border border-${item.color}/20 inline-block px-3 md:px-4 py-1 md:py-1.5 rounded-full`}>{item.status}</div>
+                <div className={`text-[10px] md:text-xs font-bold inline-block px-3 md:px-4 py-1 md:py-1.5 rounded-full border ${item.badge}`}>{item.status}</div>
               </div>
             ))}
           </div>
@@ -234,17 +369,128 @@ function App() {
       </footer>
 
       {modalContent && (
-        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-brand-navy border border-white/10 rounded-3xl p-8 max-w-2xl w-full relative">
-            <button onClick={() => setModalContent(null)} className="absolute top-6 right-6 text-slate-400 hover:text-white">
+        <div
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setModalContent(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={modalContent.title}
+        >
+          <div
+            className="bg-brand-navy border border-white/10 rounded-3xl p-8 max-w-2xl w-full relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button onClick={() => setModalContent(null)} aria-label="Cerrar" className="absolute top-6 right-6 text-slate-400 hover:text-white">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
             <h3 className="text-3xl font-bold mb-6">{modalContent.title}</h3>
-            <div className="text-slate-300 leading-relaxed max-h-[60vh] overflow-y-auto pr-4 custom-scrollbar">
-              <p>{modalContent.text}</p>
+            <div className="text-slate-300 leading-relaxed max-h-[60vh] overflow-y-auto pr-4 custom-scrollbar space-y-5">
+              {modalContent.paragraphs.map((p, i) => (
+                <div key={i}>
+                  {p.heading && <h4 className="font-bold text-white mb-2">{p.heading}</h4>}
+                  {p.text && <p>{p.text}</p>}
+                  {p.bullets && (
+                    <ul className="list-disc pl-6 mt-2 space-y-1.5">
+                      {p.bullets.map((b, j) => <li key={j}>{b}</li>)}
+                    </ul>
+                  )}
+                  {p.footer && <p className="mt-3">{p.footer}</p>}
+                </div>
+              ))}
             </div>
             <div className="mt-8 flex justify-end">
               <button onClick={() => setModalContent(null)} className="bg-brand-amber text-brand-navy font-bold py-3 px-8 rounded-full hover:bg-yellow-400 transition-colors">Aceptar y Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {paymentSuccess && (
+        <div
+          className="fixed inset-0 z-[110] bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Pago confirmado"
+        >
+          <div className="bg-brand-navy border border-brand-amber/30 rounded-3xl p-8 md:p-10 max-w-2xl w-full relative shadow-2xl shadow-brand-amber/10">
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/15 border border-emerald-500/30 mb-4">
+                <svg className="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path></svg>
+              </div>
+              <h3 className="text-3xl md:text-4xl font-extrabold tracking-tight">¡Bienvenido al club{user?.user_metadata?.full_name ? `, ${user.user_metadata.full_name.split(' ')[0]}` : ''}!</h3>
+              <p className="text-slate-300 mt-3">
+                Tu pago se ha procesado correctamente. Ya formas parte de AeroSocio VIP{paymentSuccess.plan === 'annual' ? ' (Plan Anual)' : ' (Plan Mensual)'}.
+              </p>
+            </div>
+
+            {paymentSuccess.plan !== 'annual' && (
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center text-slate-300">
+                <p>Recibirás un email de confirmación en breve. Si tienes cualquier duda, escríbenos a <a className="text-brand-amber font-semibold" href="mailto:carlos.linares.es@gmail.com">carlos.linares.es@gmail.com</a>.</p>
+              </div>
+            )}
+
+            {paymentSuccess.plan === 'annual' && shippingStatus !== 'done' && (
+              <form onSubmit={handleShippingSubmit} className="space-y-4">
+                <div className="bg-brand-amber/10 border border-brand-amber/30 rounded-2xl p-4 text-sm text-brand-amber">
+                  🚨 <strong>Tu Baliza V16 DGT está incluida.</strong> Indícanos a dónde la enviamos (España peninsular).
+                </div>
+                {!user && (
+                  <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 text-sm text-red-300">
+                    Tu sesión ha expirado tras volver de SumUp. <button type="button" onClick={handleGoogleLogin} className="underline font-semibold">Inicia sesión de nuevo</button> para registrar la dirección de envío.
+                  </div>
+                )}
+                <input required type="text" placeholder="Nombre y apellidos" value={shipping.fullName}
+                  onChange={(e) => setShipping(s => ({ ...s, fullName: e.target.value }))}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-amber transition-colors" />
+                <input required type="text" placeholder="Calle, número" value={shipping.addressLine1}
+                  onChange={(e) => setShipping(s => ({ ...s, addressLine1: e.target.value }))}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-amber transition-colors" />
+                <input type="text" placeholder="Piso, puerta (opcional)" value={shipping.addressLine2}
+                  onChange={(e) => setShipping(s => ({ ...s, addressLine2: e.target.value }))}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-amber transition-colors" />
+                <div className="grid grid-cols-3 gap-3">
+                  <input required type="text" inputMode="numeric" pattern="[0-9]{5}" placeholder="C.P." value={shipping.postalCode}
+                    onChange={(e) => setShipping(s => ({ ...s, postalCode: e.target.value }))}
+                    className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-amber transition-colors" />
+                  <input required type="text" placeholder="Ciudad" value={shipping.city}
+                    onChange={(e) => setShipping(s => ({ ...s, city: e.target.value }))}
+                    className="col-span-2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-amber transition-colors" />
+                </div>
+                <input required type="text" placeholder="Provincia" value={shipping.province}
+                  onChange={(e) => setShipping(s => ({ ...s, province: e.target.value }))}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-amber transition-colors" />
+                <input required type="tel" placeholder="Teléfono de contacto" value={shipping.phone}
+                  onChange={(e) => setShipping(s => ({ ...s, phone: e.target.value }))}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-amber transition-colors" />
+
+                {shippingError && (
+                  <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3">{shippingError}</p>
+                )}
+
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                  <button type="button" onClick={closePaymentSuccess}
+                    className="flex-1 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold py-3 px-6 rounded-full transition-colors">
+                    Más tarde
+                  </button>
+                  <button type="submit" disabled={shippingStatus === 'sending' || !user}
+                    className="flex-[2] bg-brand-amber text-brand-navy font-bold py-3 px-6 rounded-full hover:bg-yellow-400 transition-colors disabled:opacity-60 disabled:cursor-wait">
+                    {shippingStatus === 'sending' ? 'Enviando…' : 'Enviar mi Baliza V16'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {paymentSuccess.plan === 'annual' && shippingStatus === 'done' && (
+              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-6 text-center text-emerald-300">
+                <p className="font-semibold text-lg">¡Dirección registrada!</p>
+                <p className="text-sm mt-2 text-emerald-200/80">Tu Baliza V16 saldrá rumbo a {shipping.city || 'tu domicilio'} en las próximas 48–72 h. Te enviaremos el número de seguimiento por email.</p>
+              </div>
+            )}
+
+            <div className="mt-6 text-center">
+              <button onClick={closePaymentSuccess} className="text-slate-400 hover:text-white text-sm transition-colors">
+                {shippingStatus === 'done' ? 'Cerrar' : 'Volver a la página'}
+              </button>
             </div>
           </div>
         </div>
