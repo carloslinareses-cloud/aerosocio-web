@@ -1,5 +1,14 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import Admin from './Admin.jsx';
+
+const ADMIN_EMAIL = 'carlos.linares.es@gmail.com';
+
+function isAdminRoute() {
+  if (typeof window === 'undefined') return false;
+  const params = new URLSearchParams(window.location.search);
+  return params.get('admin') === '1';
+}
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -473,6 +482,48 @@ function App() {
     },
   };
 
+  // Ruta admin: ?admin=1
+  if (isAdminRoute()) {
+    const exitToSite = () => {
+      window.history.replaceState({}, '', window.location.pathname);
+      window.location.reload();
+    };
+    if (!user) {
+      return (
+        <div className="min-h-screen bg-[#08101a] text-white flex items-center justify-center p-6">
+          <div className="bg-white/5 border border-white/10 rounded-3xl p-8 max-w-md w-full text-center">
+            <span className="text-4xl">🔒</span>
+            <h1 className="text-2xl font-bold mt-3 mb-2">Panel de Administración</h1>
+            <p className="text-slate-400 text-sm mb-6">Inicia sesión con tu cuenta de Google de administrador para continuar.</p>
+            <button onClick={handleGoogleLogin}
+              className="w-full bg-brand-amber text-brand-navy font-bold py-3 rounded-full hover:bg-yellow-400 transition-colors">
+              Iniciar sesión con Google
+            </button>
+            <button onClick={exitToSite} className="text-slate-500 text-xs mt-4 hover:text-white transition-colors">← Volver al sitio</button>
+          </div>
+        </div>
+      );
+    }
+    if (user.email !== ADMIN_EMAIL) {
+      return (
+        <div className="min-h-screen bg-[#08101a] text-white flex items-center justify-center p-6">
+          <div className="bg-white/5 border border-red-500/30 rounded-3xl p-8 max-w-md w-full text-center">
+            <span className="text-4xl">⛔</span>
+            <h1 className="text-2xl font-bold mt-3 mb-2">Acceso denegado</h1>
+            <p className="text-slate-400 text-sm mb-2">Esta sección está reservada para administradores de AeroSocio.</p>
+            <p className="text-xs text-slate-500 mb-6">Conectado como <strong className="text-white">{user.email}</strong>.</p>
+            <button onClick={handleLogout}
+              className="w-full bg-white/10 border border-white/20 text-white font-bold py-3 rounded-full hover:bg-white/20 transition-colors mb-2">
+              Cerrar sesión
+            </button>
+            <button onClick={exitToSite} className="text-slate-500 text-xs hover:text-white transition-colors">← Volver al sitio</button>
+          </div>
+        </div>
+      );
+    }
+    return <Admin supabase={supabase} user={user} onExit={exitToSite} />;
+  }
+
   return (
     <div className="min-h-screen bg-[#08101a] text-white font-sans selection:bg-brand-amber selection:text-brand-navy relative overflow-hidden w-full">
       
@@ -497,8 +548,13 @@ function App() {
           </div>
           
           {user ? (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-3">
               <span className="hidden md:block text-sm text-slate-300">Hola, {user.user_metadata?.full_name?.split(' ')[0] || 'Socio'}</span>
+              {user.email === ADMIN_EMAIL && (
+                <a href="?admin=1" className="bg-brand-amber/20 border border-brand-amber/40 text-brand-amber font-bold py-2 px-3 md:px-4 rounded-full text-xs hover:bg-brand-amber/30 transition-all">
+                  ⚙️ Admin
+                </a>
+              )}
               <button onClick={handleLogout} className="bg-white/10 border border-white/20 text-white font-semibold py-2 px-4 md:px-6 rounded-full text-sm hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/50 transition-all">
                 Salir
               </button>
