@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import Admin from './Admin.jsx';
 
@@ -166,6 +166,48 @@ const MARKETPLACE = {
   },
 };
 
+const FOMO_DISMISS_KEY = 'aerosocio_fomo_dismissed_until';
+
+function getEndOfMonth() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+}
+
+const FAQS = [
+  {
+    q: '¿La Baliza V16 conectada es realmente obligatoria?',
+    a: 'Sí. La DGT estableció que desde el 1 de enero de 2026 la Baliza V16 conectada (con SIM de comunicación a la plataforma DGT 3.0) sustituye a los triángulos de emergencia. Circular sin ella implica una multa de 80€ a 200€ y, lo más importante, riesgo real si tienes una avería en la carretera. Las balizas no homologadas (mayoría de AliExpress) no son válidas.',
+  },
+  {
+    q: '¿Puedo cancelar mi suscripción en cualquier momento?',
+    a: 'Sí. Puedes cancelar tu plan en cualquier momento desde tu perfil, antes del siguiente ciclo de facturación. No hay permanencia, no hay penalización, no hay preguntas. La cancelación es efectiva al final del periodo ya pagado.',
+  },
+  {
+    q: '¿Cuándo me llega la Baliza V16 tras suscribirme?',
+    a: 'Tras suscribirte al Plan Anual o VIP+, te pediremos tu dirección postal en una pantalla privada. Desde ese momento, el envío se realiza en un plazo máximo de 5 días hábiles a cualquier punto de España peninsular. Te enviaremos el número de seguimiento por email.',
+  },
+  {
+    q: '¿Las plantillas de recurso de multa realmente funcionan?',
+    a: 'Las plantillas que ofrecemos están redactadas siguiendo los fundamentos jurídicos previstos en la LSV y el Reglamento General de Circulación. Son una buena base de partida y, en muchos casos, suficientes para obtener archivos o reducciones. Para multas con detracción importante de puntos o casos complejos, recomendamos siempre contar con asesoramiento letrado — los socios VIP+ tienen 1 consulta legal al mes incluida.',
+  },
+  {
+    q: '¿Cómo funciona el concierge WhatsApp del Plan VIP+?',
+    a: 'Te damos un número de WhatsApp dedicado, atendido personalmente por nuestro equipo de lunes a viernes de 9 h a 19 h. Lo usas para cualquier consulta de movilidad: dudas sobre multas, gestión de cita ITV, asistencia para tu próximo viaje. Garantía de primera respuesta en menos de 24 h.',
+  },
+  {
+    q: '¿Mis datos personales están seguros?',
+    a: 'Sí. Cumplimos el Reglamento General de Protección de Datos (RGPD) y la LSSI-CE. Los pagos los procesa SumUp y nunca vemos tus datos bancarios. La información de tu vehículo se cifra en nuestra plataforma. Puedes ejercer tus derechos de acceso, rectificación, oposición y supresión escribiendo a carlos.linares.es@gmail.com.',
+  },
+  {
+    q: '¿Funciona la eSIM en mi móvil?',
+    a: 'La eSIM funciona en cualquier móvil que soporte eSIM: iPhone XS o superior, Pixel 3 o superior, Samsung Galaxy S20 o superior, y prácticamente todos los Android premium desde 2020. Recibirás un QR por email; lo escaneas en Ajustes → Datos móviles → Añadir eSIM y queda activa en menos de 2 minutos.',
+  },
+  {
+    q: '¿Hacéis envíos fuera de España peninsular?',
+    a: 'De momento solo enviamos balizas y productos físicos dentro de España peninsular. Para Baleares, Canarias, Ceuta y Melilla estamos cerrando acuerdos con mensajería específica. Si vives allí, suscríbete al Plan Mensual o Anual sin baliza y te contactaremos en cuanto tengamos cobertura.',
+  },
+];
+
 function readPaymentFromUrl() {
   if (typeof window === 'undefined') return null;
   const params = new URLSearchParams(window.location.search);
@@ -205,6 +247,15 @@ function App() {
   // Widget de pago SumUp (in-page)
   const [sumupCheckout, setSumupCheckout] = useState(null); // { checkoutId, plan } | null
   const [sumupError, setSumupError] = useState('');
+  // FOMO popup
+  const [fomoOpen, setFomoOpen] = useState(false);
+  const [countdown, setCountdown] = useState(() => {
+    const target = getEndOfMonth();
+    const ms = target.getTime() - Date.now();
+    return Math.max(0, ms);
+  });
+  // FAQ accordion
+  const [openFaq, setOpenFaq] = useState(null);
   // Buscador de parking (Fase 1: captura de demanda)
   const [parking, setParking] = useState(EMPTY_PARKING);
   const [parkingStatus, setParkingStatus] = useState('idle'); // 'idle'|'sending'|'done'
@@ -255,6 +306,41 @@ function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [modalContent]);
 
+  // Pop-up FOMO: aparece a los 5 seg si el visitante no lo descartó hace <24h
+  useEffect(() => {
+    const dismissedUntil = parseInt(localStorage.getItem(FOMO_DISMISS_KEY) || '0', 10);
+    if (dismissedUntil > Date.now()) return;
+    const t = setTimeout(() => setFomoOpen(true), 5000);
+    return () => clearTimeout(t);
+  }, []);
+
+  // Countdown tick cada segundo
+  useEffect(() => {
+    const target = getEndOfMonth().getTime();
+    const id = setInterval(() => {
+      setCountdown(Math.max(0, target - Date.now()));
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const dismissFomo = useCallback((hours = 24) => {
+    const until = Date.now() + hours * 60 * 60 * 1000;
+    localStorage.setItem(FOMO_DISMISS_KEY, String(until));
+    setFomoOpen(false);
+  }, []);
+
+  const fomoToPlanes = useCallback(() => {
+    dismissFomo();
+    const el = document.getElementById('planes');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  }, [dismissFomo]);
+
+  // Desglose del countdown
+  const cdDays    = Math.floor(countdown / (1000 * 60 * 60 * 24));
+  const cdHours   = Math.floor((countdown / (1000 * 60 * 60)) % 24);
+  const cdMinutes = Math.floor((countdown / (1000 * 60)) % 60);
+  const cdSeconds = Math.floor((countdown / 1000) % 60);
+
   // Montar widget SumUp cuando hay un checkout listo
   useEffect(() => {
     if (!sumupCheckout) return;
@@ -276,6 +362,7 @@ function App() {
             console.log('SumUp event:', type, body);
             if (type === 'success') {
               const plan = sumupCheckout.plan;
+              const productEmail = user?.email || sumupCheckout.email;
               setSumupCheckout(null);
               setPaymentSuccess({ plan });
               // Si fue una membresia, marcar el perfil para que el marketplace sepa que ya tiene baliza
@@ -289,6 +376,18 @@ function App() {
                 } catch (e) {
                   console.warn('No se pudo actualizar perfiles.plan:', e);
                 }
+              }
+              // Disparar email de confirmacion (silencioso si no esta configurada la Edge Function)
+              try {
+                await supabase.functions.invoke('enviar-confirmacion', {
+                  body: {
+                    productId: plan,
+                    userEmail: productEmail,
+                    userName: user?.user_metadata?.full_name,
+                  },
+                });
+              } catch (e) {
+                console.warn('Email de confirmacion no enviado:', e);
               }
             } else if (type === 'error') {
               setSumupError(body?.message || 'El pago no se pudo procesar. Revisa los datos de tu tarjeta o prueba con otra.');
@@ -661,6 +760,7 @@ function App() {
             <button onClick={() => scrollToSection('planes')} className="px-5 py-2 rounded-full hover:bg-white/5 transition-colors">Planes</button>
             <button onClick={() => scrollToSection('servicios')} className="px-5 py-2 rounded-full hover:bg-white/5 transition-colors">Servicios</button>
             <button onClick={() => scrollToSection('marketplace')} className="px-5 py-2 rounded-full hover:bg-white/5 transition-colors">Marketplace</button>
+            <button onClick={() => scrollToSection('faq')} className="px-5 py-2 rounded-full hover:bg-white/5 transition-colors">FAQ</button>
           </div>
           
           {user ? (
@@ -1184,6 +1284,45 @@ function App() {
         </div>
       </section>
 
+      <section id="faq" className="py-20 md:py-28 border-t border-white/5 relative z-10">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-10 md:mb-12 max-w-3xl mx-auto">
+            <div className="inline-flex items-center gap-2 bg-brand-amber/10 border border-brand-amber/30 text-brand-amber font-bold px-4 py-2 rounded-full text-xs uppercase tracking-widest mb-5">
+              FAQ
+            </div>
+            <h3 className="text-3xl md:text-5xl font-extrabold tracking-tighter mb-3">
+              Preguntas frecuentes
+            </h3>
+            <p className="text-slate-400 text-base md:text-lg">
+              Si la duda no está aquí, escríbenos a <a className="text-brand-amber" href="mailto:carlos.linares.es@gmail.com">carlos.linares.es@gmail.com</a>.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {FAQS.map((item, i) => {
+              const isOpen = openFaq === i;
+              return (
+                <div key={i} className={`bg-white/5 border rounded-2xl transition-all ${isOpen ? 'border-brand-amber/40' : 'border-white/10'}`}>
+                  <button
+                    onClick={() => setOpenFaq(isOpen ? null : i)}
+                    className="w-full flex items-center justify-between gap-4 p-5 md:p-6 text-left"
+                    aria-expanded={isOpen}
+                  >
+                    <span className="font-bold text-sm md:text-base">{item.q}</span>
+                    <span className={`text-brand-amber text-2xl flex-shrink-0 transition-transform ${isOpen ? 'rotate-45' : ''}`}>+</span>
+                  </button>
+                  {isOpen && (
+                    <div className="px-5 md:px-6 pb-5 md:pb-6 text-sm text-slate-300 leading-relaxed border-t border-white/10 pt-4">
+                      {item.a}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
       <footer className="bg-[#04080e] py-10 md:py-16 border-t border-white/5">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6 text-xs md:text-sm text-slate-500">
           <div className="flex items-center gap-2 md:gap-3 opacity-60">
@@ -1527,6 +1666,69 @@ function App() {
             <div className="mt-6 text-center">
               <button onClick={closePaymentSuccess} className="text-slate-400 hover:text-white text-sm transition-colors">
                 {shippingStatus === 'done' ? 'Cerrar' : 'Volver a la página'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FOMO pop-up de lanzamiento */}
+      {fomoOpen && (
+        <div
+          className="fixed inset-0 z-[150] bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
+          onClick={() => dismissFomo()}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Oferta especial"
+        >
+          <div
+            className="bg-gradient-to-br from-brand-navy to-[#08101a] border border-brand-amber/40 rounded-3xl p-6 md:p-8 max-w-md w-full relative shadow-2xl shadow-brand-amber/20"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button onClick={() => dismissFomo()} aria-label="Cerrar"
+              className="absolute top-4 right-4 text-slate-400 hover:text-white">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+
+            <div className="text-center">
+              <div className="inline-flex items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-300 font-bold px-3 py-1 rounded-full text-[10px] uppercase tracking-widest mb-4">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse"></span>
+                Oferta Socios Fundadores
+              </div>
+
+              <h3 className="text-2xl md:text-3xl font-extrabold tracking-tight mb-2">
+                La Baliza V16 ya es <span className="text-brand-amber">obligatoria</span>
+              </h3>
+              <p className="text-slate-300 text-sm md:text-base mb-5">
+                Circular sin ella es multa de 80€ a 200€. Con el Plan Anual te la mandamos GRATIS y bloqueamos el precio de lanzamiento (49€/año).
+              </p>
+
+              <div className="grid grid-cols-4 gap-2 mb-5 bg-white/5 border border-white/10 rounded-2xl p-3">
+                {[
+                  { v: cdDays,    l: 'días' },
+                  { v: cdHours,   l: 'horas' },
+                  { v: cdMinutes, l: 'min' },
+                  { v: cdSeconds, l: 'seg' },
+                ].map((u) => (
+                  <div key={u.l}>
+                    <div className="text-2xl md:text-3xl font-extrabold text-brand-amber">{String(u.v).padStart(2, '0')}</div>
+                    <div className="text-[10px] text-slate-500 uppercase tracking-widest">{u.l}</div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[11px] text-slate-500 mb-5">Precio congelado hasta fin de mes.</p>
+
+              <button
+                onClick={fomoToPlanes}
+                className="w-full bg-gradient-to-r from-brand-amber to-yellow-300 text-brand-navy font-extrabold py-3.5 rounded-full hover:brightness-110 transition-all shadow-xl shadow-brand-amber/40 mb-2"
+              >
+                Asegurar mi plaza por 49€
+              </button>
+              <button
+                onClick={() => dismissFomo()}
+                className="w-full text-slate-400 hover:text-white text-xs transition-colors py-2"
+              >
+                Recordarme más tarde
               </button>
             </div>
           </div>
