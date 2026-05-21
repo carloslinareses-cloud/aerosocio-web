@@ -126,7 +126,6 @@ const MARKETPLACE = {
     items: [
       { id: 'parking', icon: '🅿️', titulo: 'Parking Aeropuertos', desc: 'Comparamos los parkings cercanos y te enviamos la mejor oferta.', precio: 'Gratis', disponible: true, ancla: 'parking' },
       { id: 'esim', icon: '📱', titulo: 'eSIM Internacional', desc: 'Datos móviles en 190 países, sin roaming. Recibe tu QR en menos de 24 h hábiles.', precio: '10€/día', disponible: true, requierePago: true, unitAmount: 10, perDay: true },
-      { id: 'lavado-valet', icon: '🧼', titulo: 'Lavado de Coche en Valet Madrid', desc: 'Mientras viajas, te dejamos el coche reluciente. Lavado exterior + aspirado interior, con tu coche ya parado en nuestro valet.', precio: '25€', disponible: true, requierePago: true, amount: 25 },
       { id: 'reclamacion-vuelo', icon: '✈️', titulo: 'Reclamación de Vuelo', desc: 'Vuelo retrasado o cancelado. Tramitamos tu indemnización hasta 600€ ante la aerolínea.', precio: 'Consultar', disponible: false },
       { id: 'hotel', icon: '🏨', titulo: 'Hoteles al Mejor Precio', desc: 'Encontramos el alojamiento más barato según tus fechas y destino.', precio: 'Comisión 0 socios', disponible: false },
       { id: 'alquiler-coche', icon: '🚙', titulo: 'Coche de Alquiler', desc: 'Comparamos las principales rentadoras para tu ruta.', precio: 'Comisión 0 socios', disponible: false },
