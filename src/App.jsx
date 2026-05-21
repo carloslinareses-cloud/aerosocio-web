@@ -115,6 +115,9 @@ const MARKETPLACE = {
     items: [
       { id: 'recurso-multa', icon: '⚖️', titulo: 'Recurso de Multa DGT', desc: 'Analizamos tu multa, redactamos el recurso formal y lo presentamos en la sede electrónica del organismo competente.', precio: '9,90€', disponible: true, requierePago: true, amount: 9.90 },
       { id: 'cita-itv', icon: '🔧', titulo: 'Cita ITV Exprés', desc: 'Te gestionamos cita prioritaria en la ITV más cercana en menos de 24h hábiles.', precio: '5€', disponible: true, requierePago: true, amount: 5 },
+      { id: 'recuperar-puntos', icon: '🎯', titulo: 'Recuperación de Puntos del Carnet', desc: 'Te localizamos curso homologado por la DGT cerca de ti, te reservamos plaza prioritaria y te enviamos todo el papeleo listo para firmar.', precio: '29€', disponible: true, requierePago: true, amount: 29 },
+      { id: 'multas-extranjero', icon: '🌍', titulo: 'Multas del Extranjero (UE)', desc: 'Recibiste una multa de Francia, Portugal, Italia o cualquier país UE. Analizamos plazo, prescripción y opciones de impugnación.', precio: '19,90€', disponible: true, requierePago: true, amount: 19.90 },
+      { id: 'cambio-domicilio', icon: '🏠', titulo: 'Cambio de Domicilio en DGT', desc: 'Trámite obligatorio cuando te mudas. Lo gestionamos online por ti, sin colas ni desplazamientos.', precio: '15€', disponible: true, requierePago: true, amount: 15 },
     ],
   },
   viajes: {
@@ -123,6 +126,7 @@ const MARKETPLACE = {
     items: [
       { id: 'parking', icon: '🅿️', titulo: 'Parking Aeropuertos', desc: 'Comparamos los parkings cercanos y te enviamos la mejor oferta.', precio: 'Gratis', disponible: true, ancla: 'parking' },
       { id: 'esim', icon: '📱', titulo: 'eSIM Internacional', desc: 'Datos móviles en 190 países, sin roaming. Recibe tu QR en menos de 24 h hábiles.', precio: '10€/día', disponible: true, requierePago: true, unitAmount: 10, perDay: true },
+      { id: 'lavado-valet', icon: '🧼', titulo: 'Lavado de Coche en Valet Madrid', desc: 'Mientras viajas, te dejamos el coche reluciente. Lavado exterior + aspirado interior, con tu coche ya parado en nuestro valet.', precio: '25€', disponible: true, requierePago: true, amount: 25 },
       { id: 'reclamacion-vuelo', icon: '✈️', titulo: 'Reclamación de Vuelo', desc: 'Vuelo retrasado o cancelado. Tramitamos tu indemnización hasta 600€ ante la aerolínea.', precio: 'Consultar', disponible: false },
       { id: 'hotel', icon: '🏨', titulo: 'Hoteles al Mejor Precio', desc: 'Encontramos el alojamiento más barato según tus fechas y destino.', precio: 'Comisión 0 socios', disponible: false },
       { id: 'alquiler-coche', icon: '🚙', titulo: 'Coche de Alquiler', desc: 'Comparamos las principales rentadoras para tu ruta.', precio: 'Comisión 0 socios', disponible: false },
@@ -138,6 +142,18 @@ const MARKETPLACE = {
       { id: 'kit-emergencia', icon: '🧰', titulo: 'Kit Emergencia Coche', desc: 'Chaleco reflectante, triángulos homologados, botiquín y linterna LED en estuche. Envío en 5 días hábiles a España peninsular.', precio: '40€', disponible: true, requierePago: true, amount: 40, requiereEnvio: true },
       { id: 'tag-gps', icon: '📍', titulo: 'Localizador GPS Bluetooth', desc: 'Para llaves, maletas o coche. Elige compatibilidad con iPhone o Android. Envío en 5 días hábiles a España peninsular.', precio: '35€', disponible: true, requierePago: true, amount: 35, requiereEnvio: true, requierePlataforma: true },
       { id: 'soporte-movil', icon: '📲', titulo: 'Soporte Móvil Coche', desc: 'Magnético con carga inalámbrica. Instalación al salpicadero. Envío en 5 días hábiles a España peninsular.', precio: '20€', disponible: true, requierePago: true, amount: 20, requiereEnvio: true },
+      { id: 'cargador-usbc', icon: '🔌', titulo: 'Cargador Rápido USB-C Coche', desc: 'Carga rápida 65W con dos puertos. Compatible iPhone y Android. Envío en 5 días hábiles.', precio: '15€', disponible: true, requierePago: true, amount: 15, requiereEnvio: true },
+      { id: 'adaptador-universal', icon: '🌍', titulo: 'Adaptador Enchufes Universal Viaje', desc: '150+ países, 4 puertos USB + 1 USB-C. Imprescindible para viajeros frecuentes. Envío 5 días hábiles.', precio: '15€', disponible: true, requierePago: true, amount: 15, requiereEnvio: true },
+      { id: 'bascula-maleta', icon: '⚖️', titulo: 'Báscula Digital de Maletas', desc: 'Hasta 50 kg. Evita el sobrepeso en facturación (que cuesta 80€/maleta). Envío 5 días hábiles.', precio: '12€', disponible: true, requierePago: true, amount: 12, requiereEnvio: true },
+    ],
+  },
+  packs: {
+    titulo: '🎁 Packs Ahorro Exclusivos',
+    descripcion: 'Combinaciones que valen lo que cuestan dos. Pack único, un solo pago.',
+    items: [
+      { id: 'pack-seguridad', icon: '🛡️', titulo: 'Pack Seguridad Coche', desc: 'Baliza V16 DGT + Kit Emergencia + Localizador GPS. Todo lo que la DGT y el sentido común te piden para circular tranquilo. Envío en 5 días hábiles.', precio: '99€', precioAntes: '124€', disponible: true, requierePago: true, amount: 99, requiereEnvio: true, ahorro: '25€' },
+      { id: 'pack-viajero', icon: '✈️', titulo: 'Pack Viajero Conectado', desc: '30 días de eSIM internacional + Adaptador universal + Báscula de maletas. Lo justo para viajar sin sorpresas. Envío 5 días hábiles.', precio: '249€', precioAntes: '327€', disponible: true, requierePago: true, amount: 249, requiereEnvio: true, ahorro: '78€' },
+      { id: 'pack-todoterreno', icon: '🚗', titulo: 'Pack Conductor Premium', desc: 'Plan Anual + Baliza V16 (gratis con el plan) + 2 recursos de multa de regalo + Kit Emergencia. Vale por sí solo más de 108€.', precio: '75€', precioAntes: '108€', disponible: true, requierePago: true, amount: 75, requiereEnvio: true, ahorro: '33€' },
     ],
   },
   futuro: {
@@ -628,6 +644,11 @@ function App() {
       <GlowEffect className="w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-blue-500 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
       <GlowEffect className="hidden md:block w-[600px] h-[600px] bg-emerald-500 bottom-0 -right-48" />
 
+      {/* Banner promocional superior */}
+      <div className="bg-gradient-to-r from-brand-amber via-yellow-300 to-brand-amber text-brand-navy text-center py-2 px-4 text-[11px] md:text-sm font-bold relative z-50">
+        🚨 La Baliza V16 conectada será obligatoria desde el 1 enero 2026 · <a href="#planes" onClick={(e) => { e.preventDefault(); scrollToSection('planes'); }} className="underline hover:no-underline">Asegúrate la tuya GRATIS con el Plan Anual</a>
+      </div>
+
       {/* Navbar - Optimizada para móvil con Botones Funcionales */}
       <nav className="sticky top-0 z-50 backdrop-blur-xl bg-brand-navy/80 border-b border-white/5">
         <div className="flex justify-between items-center p-4 md:px-6 max-w-7xl mx-auto">
@@ -784,6 +805,60 @@ function App() {
                 <h4 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-white tracking-tight">{item.title}</h4>
                 <p className="text-sm md:text-base text-slate-400 leading-relaxed mb-6">{item.desc}</p>
                 <div className={`text-[10px] md:text-xs font-bold inline-block px-3 md:px-4 py-1 md:py-1.5 rounded-full border ${item.badge}`}>{item.status}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="confianza" className="py-16 md:py-24 border-t border-white/5 relative z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-16 md:mb-20">
+            <div className="text-center">
+              <p className="text-4xl md:text-5xl font-extrabold text-brand-amber">+1.000</p>
+              <p className="text-xs text-slate-400 uppercase tracking-widest mt-1">Conductores ya socios</p>
+            </div>
+            <div className="text-center">
+              <p className="text-4xl md:text-5xl font-extrabold text-brand-amber">2026</p>
+              <p className="text-xs text-slate-400 uppercase tracking-widest mt-1">Año V16 obligatoria</p>
+            </div>
+            <div className="text-center">
+              <p className="text-4xl md:text-5xl font-extrabold text-brand-amber">600€</p>
+              <p className="text-xs text-slate-400 uppercase tracking-widest mt-1">Indemnización máx. vuelo</p>
+            </div>
+            <div className="text-center">
+              <p className="text-4xl md:text-5xl font-extrabold text-brand-amber">24h</p>
+              <p className="text-xs text-slate-400 uppercase tracking-widest mt-1">Respuesta concierge VIP+</p>
+            </div>
+          </div>
+
+          {/* Testimonios */}
+          <div className="text-center mb-10 max-w-3xl mx-auto">
+            <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-bold px-4 py-2 rounded-full text-xs uppercase tracking-widest mb-5">
+              ⭐⭐⭐⭐⭐ Opiniones reales
+            </div>
+            <h3 className="text-3xl md:text-5xl font-extrabold tracking-tighter">
+              Lo dicen <span className="text-transparent bg-clip-text bg-gradient-to-b from-brand-amber to-yellow-200">nuestros socios</span>
+            </h3>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-4 md:gap-5">
+            {[
+              { texto: 'Me he olvidado de la fecha de la ITV cuatro veces en mi vida. Desde AeroSocio, recordatorio una semana antes y todo resuelto. Por 49€ al año es un regalo.', autor: 'Javier R.', detalle: 'Plan Anual · Madrid', avatar: '👨🏻‍💼' },
+              { texto: 'Compré la Baliza V16 con el plan anual y me llegó en 3 días. El soporte por WhatsApp del plan VIP+ resolvió en 10 minutos una duda con una multa.', autor: 'Carmen L.', detalle: 'Plan VIP+ · Barcelona', avatar: '👩🏽‍💻' },
+              { texto: 'Viajo 8 veces al año. La eSIM a 10€/día me ha salvado en Tailandia y EE.UU. Activación instantánea por QR. No vuelvo a comprar SIM en aeropuertos extranjeros.', autor: 'Diego M.', detalle: 'eSIM Marketplace · Sevilla', avatar: '🧑🏽‍✈️' },
+            ].map((t, i) => (
+              <div key={i} className="bg-white/5 border border-white/10 rounded-3xl p-6 md:p-7 flex flex-col">
+                <div className="flex gap-0.5 mb-4">{Array.from({ length: 5 }).map((_, j) => <span key={j} className="text-brand-amber">★</span>)}</div>
+                <p className="text-slate-200 text-sm md:text-base leading-relaxed mb-5 flex-1">"{t.texto}"</p>
+                <div className="flex items-center gap-3 pt-4 border-t border-white/5">
+                  <span className="text-2xl md:text-3xl">{t.avatar}</span>
+                  <div>
+                    <p className="font-bold text-sm">{t.autor}</p>
+                    <p className="text-[11px] text-slate-500">{t.detalle}</p>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -973,6 +1048,11 @@ function App() {
                           : 'bg-white/[0.02] border-white/5 hover:border-blue-500/40'
                       }`}
                     >
+                      {item.ahorro && (
+                        <div className="absolute -top-2 -right-2 bg-gradient-to-r from-brand-amber to-yellow-300 text-brand-navy text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full rotate-3 shadow-lg shadow-brand-amber/40">
+                          Ahorra {item.ahorro}
+                        </div>
+                      )}
                       <div className="flex items-start justify-between mb-4">
                         <div className="text-3xl md:text-4xl">{item.icon}</div>
                         <span className={`text-[9px] md:text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full border ${
@@ -986,7 +1066,10 @@ function App() {
                       <h5 className="text-base md:text-lg font-bold tracking-tight mb-1.5">{item.titulo}</h5>
                       <p className="text-xs md:text-sm text-slate-400 leading-relaxed mb-4 line-clamp-3">{item.desc}</p>
                       <div className="flex items-center justify-between pt-3 border-t border-white/5">
-                        <span className="text-sm font-bold text-brand-amber">{item.precio}</span>
+                        <span className="flex items-baseline gap-2">
+                          <span className="text-sm font-bold text-brand-amber">{item.precio}</span>
+                          {item.precioAntes && <span className="text-xs text-slate-500 line-through">{item.precioAntes}</span>}
+                        </span>
                         <span className="text-xs text-slate-400 group-hover:text-brand-amber transition-colors">
                           {item.disponible ? 'Solicitar →' : 'Avisarme →'}
                         </span>
