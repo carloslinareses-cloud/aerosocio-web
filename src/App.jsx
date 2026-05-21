@@ -44,6 +44,70 @@ const EMPTY_PARKING = {
   email: '',
 };
 
+const PLANES = [
+  {
+    id: 'monthly',
+    nombre: 'Mensual',
+    precio: '5€',
+    periodo: '/mes',
+    descripcion: 'Lo esencial para empezar tranquilo en la carretera.',
+    beneficios: [
+      'Alertas automáticas ITV, seguro e impuesto de circulación por email',
+      'Gestión documental en la nube (hasta 5 documentos)',
+      'Recordatorio de renovación de carnet (6 meses antes)',
+      'Plantillas legales pre-rellenadas para recursos de multas',
+      'Guía PDF "Tus derechos como conductor en España"',
+      '5% de descuento en todo el Marketplace',
+    ],
+    sin: [
+      'Sin Baliza V16 incluida',
+      'Sin reclamación de vuelos asistida',
+      'Sin concierge personal',
+    ],
+  },
+  {
+    id: 'annual',
+    nombre: 'Anual + Baliza',
+    precio: '49€',
+    periodo: '/año',
+    descripcion: 'El más popular. Ahorras 11€ vs mensual y te llevas la Baliza V16 gratis.',
+    destacado: 'popular',
+    badge: 'POPULAR',
+    beneficios: [
+      'Todo lo del plan Mensual',
+      '🚨 Baliza V16 DGT con SIM 12 años (valor real 50€)',
+      'Envío gratuito de la baliza a España peninsular',
+      'Gestión documental ilimitada en la nube',
+      'Reclamación de vuelos asistida por email',
+      'Acceso anticipado a nuevos servicios del Marketplace',
+      '10% descuento + envío gratis en el Marketplace',
+    ],
+  },
+  {
+    id: 'vipplus',
+    nombre: 'VIP+',
+    precio: '99€',
+    periodo: '/año',
+    descripcion: 'Tranquilidad total con un gestor personal a un mensaje de distancia.',
+    destacado: 'premium',
+    badge: 'PREMIUM',
+    beneficios: [
+      'Todo lo del plan Anual + Baliza',
+      '💬 Concierge personal por WhatsApp (Lun-Vie 9h-19h)',
+      'Respuesta garantizada en menos de 24h',
+      'Asesoría legal básica por email (1 consulta/mes)',
+      '15% descuento + envío gratis en el Marketplace',
+      'Prioridad máxima en la cola de todos los servicios',
+    ],
+  },
+];
+
+const PLAN_LABELS = {
+  monthly: 'Mensual',
+  annual: 'Anual + Baliza',
+  vipplus: 'VIP+',
+};
+
 const MARKETPLACE = {
   gestoria: {
     titulo: 'Servicios de Gestoría',
@@ -574,14 +638,19 @@ function App() {
           
           <div className="hidden lg:flex items-center gap-2 bg-white/5 border border-white/10 p-1 rounded-full text-sm text-slate-300">
             <button onClick={() => scrollToSection('como-funciona')} className="px-5 py-2 rounded-full hover:bg-white/5 transition-colors">¿Cómo Funciona?</button>
-            <button onClick={() => scrollToSection('membresia')} className="px-5 py-2 rounded-full hover:bg-white/5 transition-colors">Membresía VIP</button>
+            <button onClick={() => scrollToSection('planes')} className="px-5 py-2 rounded-full hover:bg-white/5 transition-colors">Planes</button>
             <button onClick={() => scrollToSection('servicios')} className="px-5 py-2 rounded-full hover:bg-white/5 transition-colors">Servicios</button>
             <button onClick={() => scrollToSection('marketplace')} className="px-5 py-2 rounded-full hover:bg-white/5 transition-colors">Marketplace</button>
           </div>
           
           {user ? (
             <div className="flex items-center gap-2 md:gap-3">
-              <span className="hidden md:block text-sm text-slate-300">Hola, {user.user_metadata?.full_name?.split(' ')[0] || 'Socio'}</span>
+              <div className="hidden md:flex flex-col items-end leading-tight">
+                <span className="text-sm text-slate-300">Hola, {user.user_metadata?.full_name?.split(' ')[0] || 'Socio'}</span>
+                {perfil?.plan && (
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-brand-amber">⭐ {PLAN_LABELS[perfil.plan] || perfil.plan}</span>
+                )}
+              </div>
               {user.email === ADMIN_EMAIL && (
                 <a href="?admin=1" className="bg-brand-amber/20 border border-brand-amber/40 text-brand-amber font-bold py-2 px-3 md:px-4 rounded-full text-xs hover:bg-brand-amber/30 transition-all">
                   ⚙️ Admin
@@ -718,6 +787,91 @@ function App() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section id="planes" className="py-20 md:py-32 border-t border-white/5 relative z-10 overflow-hidden">
+        <GlowEffect className="w-[400px] h-[400px] bg-brand-amber top-1/2 right-0 -translate-y-1/2" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 relative">
+          <div className="text-center mb-12 md:mb-16 max-w-3xl mx-auto">
+            <div className="inline-flex items-center gap-2 bg-brand-amber/10 border border-brand-amber/30 text-brand-amber font-bold px-4 py-2 rounded-full text-xs uppercase tracking-widest mb-5">
+              Compara los planes
+            </div>
+            <h3 className="text-3xl md:text-5xl lg:text-6xl font-extrabold tracking-tighter mb-4">
+              Elige el nivel que <span className="text-transparent bg-clip-text bg-gradient-to-b from-brand-amber to-yellow-200">te haga la vida más fácil</span>
+            </h3>
+            <p className="text-slate-400 text-base md:text-xl leading-relaxed">
+              Todos los planes incluyen alertas automatizadas y soporte por email. Cuanto más alto el plan, más obsesionados con tu tranquilidad.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-4 md:gap-5 items-start">
+            {PLANES.map((plan) => {
+              const esActual = perfil?.plan === plan.id;
+              const cardClass = plan.destacado === 'premium'
+                ? 'bg-gradient-to-br from-brand-amber/15 to-yellow-200/5 border-yellow-200/40'
+                : plan.destacado === 'popular'
+                ? 'bg-white/5 border-brand-amber/40'
+                : 'bg-white/5 border-white/10';
+              return (
+                <div key={plan.id} className={`relative p-6 md:p-8 rounded-3xl border ${cardClass} flex flex-col`}>
+                  {plan.badge && (
+                    <div className={`absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-extrabold px-3 py-1 rounded-full ${
+                      plan.destacado === 'premium'
+                        ? 'bg-gradient-to-r from-brand-amber to-yellow-200 text-black'
+                        : 'bg-brand-amber text-black'
+                    }`}>{plan.badge}</div>
+                  )}
+                  <div className="flex items-baseline gap-2 mb-1">
+                    <span className="text-xs uppercase tracking-widest text-slate-400 font-bold">{plan.nombre}</span>
+                    {esActual && <span className="text-[9px] font-bold uppercase tracking-widest bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 px-2 py-0.5 rounded-full">Tu plan</span>}
+                  </div>
+                  <div className="flex items-baseline gap-1 mb-3">
+                    <span className="text-4xl md:text-5xl font-extrabold">{plan.precio}</span>
+                    <span className="text-slate-500">{plan.periodo}</span>
+                  </div>
+                  <p className="text-sm text-slate-300 mb-6 leading-relaxed">{plan.descripcion}</p>
+
+                  <ul className="space-y-2.5 mb-5 flex-1">
+                    {plan.beneficios.map((b, i) => (
+                      <li key={i} className="flex items-start gap-2.5 text-sm text-slate-200">
+                        <svg className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+                        <span>{b}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {plan.sin && plan.sin.length > 0 && (
+                    <ul className="space-y-2 mb-5 pt-4 border-t border-white/5">
+                      {plan.sin.map((s, i) => (
+                        <li key={i} className="flex items-start gap-2.5 text-xs text-slate-500">
+                          <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                          <span>{s}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  <button
+                    onClick={() => handlePayment(plan.id)}
+                    disabled={esActual || isLoadingPayment}
+                    className={`w-full font-bold py-3 rounded-full transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
+                      plan.destacado === 'premium'
+                        ? 'bg-gradient-to-r from-brand-amber to-yellow-200 text-brand-navy hover:brightness-110'
+                        : plan.destacado === 'popular'
+                        ? 'bg-brand-amber text-brand-navy hover:bg-yellow-400'
+                        : 'bg-white/10 border border-white/20 text-white hover:bg-white/15'
+                    }`}>
+                    {esActual ? '✓ Plan activo' : `Suscribirme por ${plan.precio}`}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="text-center text-xs text-slate-500 mt-8 max-w-2xl mx-auto">
+            Puedes cancelar tu suscripción en cualquier momento antes del próximo cobro. Sin permanencia.
+          </p>
         </div>
       </section>
 
