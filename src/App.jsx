@@ -875,6 +875,65 @@ function App() {
         </div>
       </section>
 
+      {perfil?.plan && (
+        <section id="recursos" className="py-20 md:py-28 border-t border-white/5 relative z-10 overflow-hidden">
+          <GlowEffect className="w-[400px] h-[400px] bg-emerald-500 top-1/2 left-0 -translate-y-1/2" />
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 relative">
+            <div className="text-center mb-10 md:mb-12 max-w-3xl mx-auto">
+              <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-bold px-4 py-2 rounded-full text-xs uppercase tracking-widest mb-5">
+                ⭐ Zona privada de socios
+              </div>
+              <h3 className="text-3xl md:text-5xl font-extrabold tracking-tighter mb-3">
+                Tus recursos exclusivos
+              </h3>
+              <p className="text-slate-400 text-base md:text-lg leading-relaxed">
+                Plantillas y guías incluidas en tu plan {PLAN_LABELS[perfil.plan]}. Descarga, edita y úsalas cuando las necesites.
+              </p>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-4 md:gap-5">
+              {[
+                { titulo: 'Recurso de Multa por Velocidad', desc: 'Modelo formal para impugnar multas de radar y exceso de velocidad. Incluye alegaciones sobre margen de error del cinemómetro y calibración.', href: '/plantillas/recurso-multa-velocidad.html', icon: '⚡' },
+                { titulo: 'Recurso de Multa por Estacionamiento', desc: 'Para impugnar multas de zona azul, doble fila, vado o estacionamiento prohibido por señalización deficiente.', href: '/plantillas/recurso-multa-estacionamiento.html', icon: '🅿️' },
+                { titulo: 'Recurso de Multa por Semáforo en Rojo', desc: 'Modelo para impugnar denuncias de sistemas foto-rojo: insuficiencia probatoria, fase ámbar y calibración del sistema.', href: '/plantillas/recurso-multa-semaforo.html', icon: '🚦' },
+                { titulo: 'Guía del Conductor en España', desc: 'Manual completo con plazos legales, derechos en multas y vuelos retrasados, documentación obligatoria y mucho más.', href: null, icon: '📘', proximamente: true },
+              ].map((r) => (
+                <a key={r.titulo}
+                  href={r.href || undefined}
+                  target={r.href ? '_blank' : undefined}
+                  rel={r.href ? 'noopener noreferrer' : undefined}
+                  onClick={r.href ? undefined : (e) => e.preventDefault()}
+                  className={`group p-5 md:p-6 rounded-3xl border transition-all flex items-start gap-4 ${
+                    r.href
+                      ? 'bg-white/5 border-white/10 hover:border-brand-amber hover:-translate-y-1 cursor-pointer'
+                      : 'bg-white/[0.02] border-white/5 cursor-not-allowed opacity-70'
+                  }`}>
+                  <div className="text-3xl md:text-4xl flex-shrink-0">{r.icon}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <h4 className="text-base md:text-lg font-bold tracking-tight">{r.titulo}</h4>
+                      {r.proximamente && (
+                        <span className="text-[9px] font-bold uppercase tracking-widest bg-blue-500/15 border border-blue-500/30 text-blue-300 px-2 py-0.5 rounded-full">Pronto</span>
+                      )}
+                    </div>
+                    <p className="text-xs md:text-sm text-slate-400 leading-relaxed mb-3">{r.desc}</p>
+                    {r.href ? (
+                      <span className="text-xs font-bold text-brand-amber group-hover:underline">Abrir e imprimir como PDF →</span>
+                    ) : (
+                      <span className="text-xs text-slate-500">Te avisaremos por email cuando esté lista.</span>
+                    )}
+                  </div>
+                </a>
+              ))}
+            </div>
+
+            <p className="text-center text-[11px] text-slate-500 mt-8 max-w-2xl mx-auto">
+              Las plantillas son orientativas y no sustituyen al asesoramiento jurídico personalizado. Para situaciones complejas, contacta con tu concierge (Plan VIP+) o consulta un letrado.
+            </p>
+          </div>
+        </section>
+      )}
+
       <section id="marketplace" className="py-20 md:py-32 border-t border-white/5 relative z-10">
         <GlowEffect className="w-[400px] h-[400px] bg-brand-amber top-1/3 -left-32" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 relative">
