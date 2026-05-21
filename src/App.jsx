@@ -40,10 +40,8 @@ const MARKETPLACE = {
     titulo: 'Servicios de Gestoría',
     descripcion: 'Te ahorramos colas, papeleo y trámites. Lo hacemos por ti.',
     items: [
-      { id: 'recurso-multa', icon: '⚖️', titulo: 'Recurso de Multa DGT', desc: 'Analizamos tu multa, redactamos y presentamos el recurso. Si no ganamos, te devolvemos.', precio: '9,90€', disponible: true },
-      { id: 'cita-itv', icon: '🔧', titulo: 'Cita ITV Exprés', desc: 'Te gestionamos cita prioritaria en la ITV más cercana en menos de 24h.', precio: '5€', disponible: true },
-      { id: 'renovar-carnet', icon: '🪪', titulo: 'Renovación Carnet de Conducir', desc: 'Gestión completa: fotos, certificado médico y trámite en Tráfico.', precio: 'Desde 25€', disponible: true },
-      { id: 'transferencia-coche', icon: '🚗', titulo: 'Transferencia Compraventa', desc: 'Cambio de titularidad del vehículo todo incluido (tasas + gestión).', precio: '79€', disponible: true },
+      { id: 'recurso-multa', icon: '⚖️', titulo: 'Recurso de Multa DGT', desc: 'Analizamos tu multa, redactamos el recurso formal y lo presentamos en la sede electrónica del organismo competente.', precio: '9,90€', disponible: true, requierePago: true, amount: 9.90 },
+      { id: 'cita-itv', icon: '🔧', titulo: 'Cita ITV Exprés', desc: 'Te gestionamos cita prioritaria en la ITV más cercana en menos de 24h hábiles.', precio: '5€', disponible: true, requierePago: true, amount: 5 },
     ],
   },
   viajes: {
@@ -51,10 +49,10 @@ const MARKETPLACE = {
     descripcion: 'Búsqueda y reserva al mejor precio. Tú eliges, nosotros comparamos.',
     items: [
       { id: 'parking', icon: '🅿️', titulo: 'Parking Aeropuertos', desc: 'Comparamos los parkings cercanos y te enviamos la mejor oferta.', precio: 'Gratis', disponible: true, ancla: 'parking' },
-      { id: 'reclamacion-vuelo', icon: '✈️', titulo: 'Reclamación de Vuelo', desc: 'Vuelo retrasado o cancelado. Tramitamos tu indemnización hasta 600€.', precio: 'Sin coste si no ganamos', disponible: true },
+      { id: 'esim', icon: '📱', titulo: 'eSIM Internacional', desc: 'Datos móviles en 190 países, sin roaming. Recibe tu QR en menos de 24 h hábiles.', precio: '10€/día', disponible: true, requierePago: true, unitAmount: 10, perDay: true },
+      { id: 'reclamacion-vuelo', icon: '✈️', titulo: 'Reclamación de Vuelo', desc: 'Vuelo retrasado o cancelado. Tramitamos tu indemnización hasta 600€ ante la aerolínea.', precio: 'Consultar', disponible: false },
       { id: 'hotel', icon: '🏨', titulo: 'Hoteles al Mejor Precio', desc: 'Encontramos el alojamiento más barato según tus fechas y destino.', precio: 'Comisión 0 socios', disponible: false },
       { id: 'alquiler-coche', icon: '🚙', titulo: 'Coche de Alquiler', desc: 'Comparamos las principales rentadoras para tu ruta.', precio: 'Comisión 0 socios', disponible: false },
-      { id: 'esim', icon: '📱', titulo: 'eSIM Internacional', desc: 'Datos móviles en 190 países sin roaming. Activación en 5 min.', precio: 'Desde 5€', disponible: false },
       { id: 'seguro-viaje', icon: '🛡️', titulo: 'Seguro de Viaje', desc: 'Coberturas médicas y de cancelación con primas preferentes.', precio: 'Desde 12€', disponible: false },
       { id: 'transfer', icon: '🚕', titulo: 'Transfer al Aeropuerto', desc: 'Reserva tu traslado privado puerta-a-puerta con antelación.', precio: 'Desde 25€', disponible: false },
     ],
@@ -63,10 +61,10 @@ const MARKETPLACE = {
     titulo: 'Productos AeroSocio',
     descripcion: 'Accesorios curados para el viajero y conductor moderno.',
     items: [
-      { id: 'baliza-premium', icon: '🚨', titulo: 'Baliza V16 Premium', desc: 'Con SIM 12 años incluida. Compatible con DGT 3.0. Envío gratis socios VIP.', precio: '49€', disponible: true },
-      { id: 'kit-emergencia', icon: '🧰', titulo: 'Kit Emergencia Coche', desc: 'Chaleco reflectante, triángulos, botiquín y linterna LED en estuche.', precio: '29€', disponible: true },
-      { id: 'tag-gps', icon: '📍', titulo: 'Localizador GPS Bluetooth', desc: 'Para llaves, maletas o coche. Compatible Apple/Android.', precio: '25€', disponible: true },
-      { id: 'soporte-movil', icon: '📲', titulo: 'Soporte Móvil Coche', desc: 'Magnético con carga inalámbrica. Instalación al salpicadero.', precio: '15€', disponible: true },
+      { id: 'baliza-premium', icon: '🚨', titulo: 'Baliza V16 Premium', desc: 'Homologada DGT 3.0 con SIM IoT incluida 12 años. Envío en 5 días hábiles a España peninsular.', precio: '49€', disponible: true, requierePago: true, amount: 49, requiereEnvio: true },
+      { id: 'kit-emergencia', icon: '🧰', titulo: 'Kit Emergencia Coche', desc: 'Chaleco reflectante, triángulos, botiquín y linterna LED en estuche.', precio: '29€', disponible: false },
+      { id: 'tag-gps', icon: '📍', titulo: 'Localizador GPS Bluetooth', desc: 'Para llaves, maletas o coche. Compatible Apple/Android.', precio: '25€', disponible: false },
+      { id: 'soporte-movil', icon: '📲', titulo: 'Soporte Móvil Coche', desc: 'Magnético con carga inalámbrica. Instalación al salpicadero.', precio: '15€', disponible: false },
     ],
   },
   futuro: {
@@ -246,18 +244,17 @@ function App() {
     await supabase.auth.signOut();
   };
 
-  const handlePayment = async (planType) => {
-    if (!user) {
-      alert('Inicia sesión con Google primero para asociar tu membresía.');
-      handleGoogleLogin();
-      return;
-    }
-
+  const startCheckout = async ({ productId, quantity, userEmail, planLabel }) => {
     setIsLoadingPayment(true);
     setSumupError('');
     try {
       const { data, error } = await supabase.functions.invoke('crear-pago-sumup', {
-        body: { planType, userEmail: user.email },
+        body: {
+          planType: productId,
+          productId,
+          quantity,
+          userEmail: userEmail || user?.email || '',
+        },
       });
       if (error) throw new Error(error.message || 'No se pudo contactar con el servidor de pagos.');
       const checkoutId = data?.checkoutId || data?.id;
@@ -265,12 +262,26 @@ function App() {
         console.error('Respuesta SumUp inesperada:', data);
         throw new Error('SumUp no devolvió un ID de checkout válido.');
       }
-      setSumupCheckout({ checkoutId, plan: planType });
+      setSumupCheckout({ checkoutId, plan: planLabel || productId });
+      return true;
     } catch (err) {
       console.error('Error de pago:', err);
-      alert('Error procesando el pago: ' + err.message);
+      throw err;
     } finally {
       setIsLoadingPayment(false);
+    }
+  };
+
+  const handlePayment = async (planType) => {
+    if (!user) {
+      alert('Inicia sesión con Google primero para asociar tu membresía.');
+      handleGoogleLogin();
+      return;
+    }
+    try {
+      await startCheckout({ productId: planType, userEmail: user.email, planLabel: planType });
+    } catch (err) {
+      alert('Error procesando el pago: ' + err.message);
     }
   };
 
@@ -287,7 +298,17 @@ function App() {
       return;
     }
     setServicio(item);
-    setServicioForm({ email: user?.email || '', detalles: '' });
+    setServicioForm({
+      email: user?.email || '',
+      detalles: '',
+      dias: item.perDay ? 1 : null,
+      destino: '',
+      direccion: '',
+      poblacion: '',
+      cp: '',
+      provincia: '',
+      telefono: '',
+    });
     setServicioStatus('idle');
     setServicioError('');
   };
@@ -298,27 +319,70 @@ function App() {
     setServicioError('');
   };
 
+  const servicioTotal = () => {
+    if (!servicio?.requierePago) return 0;
+    if (servicio.perDay) {
+      const d = Math.max(1, parseInt(servicioForm.dias || 1, 10));
+      return d * servicio.unitAmount;
+    }
+    return servicio.amount;
+  };
+
   const handleServicioSubmit = async (e) => {
     e.preventDefault();
     setServicioError('');
     const email = servicioForm.email.trim();
-    const detalles = servicioForm.detalles.trim();
-    if (!email || !detalles) {
-      setServicioError('Completa email y detalles.');
-      return;
+    if (!email) { setServicioError('Indica un email.'); return; }
+
+    // Construir resumen estructurado de detalles segun el tipo
+    let detallesTexto;
+    if (servicio.perDay) {
+      const d = parseInt(servicioForm.dias || 0, 10);
+      if (!d || d < 1) { setServicioError('Indica al menos 1 día.'); return; }
+      if (!servicioForm.destino.trim()) { setServicioError('Indica el destino del viaje.'); return; }
+      detallesTexto = `Destino: ${servicioForm.destino.trim()} · Días: ${d}\n${servicioForm.detalles.trim()}`;
+    } else if (servicio.requiereEnvio) {
+      const reqd = ['direccion', 'poblacion', 'cp', 'provincia', 'telefono'];
+      for (const k of reqd) {
+        if (!servicioForm[k]?.trim()) { setServicioError('Completa todos los datos de envío.'); return; }
+      }
+      detallesTexto = [
+        `Envío: ${servicioForm.direccion.trim()}, ${servicioForm.poblacion.trim()}, ${servicioForm.cp.trim()}, ${servicioForm.provincia.trim()}`,
+        `Tel: ${servicioForm.telefono.trim()}`,
+        servicioForm.detalles.trim() || '(sin notas)',
+      ].join('\n');
+    } else {
+      if (!servicioForm.detalles.trim()) { setServicioError('Cuéntanos los detalles.'); return; }
+      detallesTexto = servicioForm.detalles.trim();
     }
+
     setServicioStatus('sending');
     try {
+      const monto = servicioTotal();
       const { error } = await supabase.from('solicitudes_servicios').insert({
         user_id: user?.id || null,
         email,
         tipo: servicio.id,
         titulo: servicio.titulo,
-        detalles,
-        estado: 'pendiente',
+        detalles: detallesTexto,
+        estado: servicio.requierePago ? 'pendiente_pago' : 'pendiente',
+        monto: servicio.requierePago ? monto : null,
       });
       if (error) throw error;
-      setServicioStatus('done');
+
+      if (servicio.requierePago) {
+        // Lanza el widget de SumUp con el producto correcto
+        await startCheckout({
+          productId: servicio.id,
+          quantity: servicio.perDay ? parseInt(servicioForm.dias, 10) : 1,
+          userEmail: email,
+          planLabel: servicio.titulo,
+        });
+        // Cerramos el modal del marketplace; el widget se abre encima
+        setServicio(null);
+      } else {
+        setServicioStatus('done');
+      }
     } catch (err) {
       console.error('Error guardando solicitud servicio:', err);
       setServicioError(err.message || 'No pudimos registrar tu solicitud. Inténtalo de nuevo.');
@@ -829,17 +893,77 @@ function App() {
                   className="mt-2 mb-4 w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-amber transition-colors"
                 />
 
-                <label className="text-xs text-slate-400 uppercase tracking-widest font-bold">Cuéntanos los detalles</label>
+                {servicio.perDay && (
+                  <div className="grid grid-cols-3 gap-3 mb-4">
+                    <div className="col-span-2">
+                      <label className="text-xs text-slate-400 uppercase tracking-widest font-bold">Destino del viaje</label>
+                      <input required type="text" placeholder="Ej: Japón, EE. UU., Tailandia…"
+                        value={servicioForm.destino}
+                        onChange={(e) => setServicioForm(s => ({ ...s, destino: e.target.value }))}
+                        className="mt-2 w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-amber transition-colors" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 uppercase tracking-widest font-bold">Días</label>
+                      <input required type="number" min="1" max="90"
+                        value={servicioForm.dias}
+                        onChange={(e) => setServicioForm(s => ({ ...s, dias: e.target.value }))}
+                        className="mt-2 w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-brand-amber transition-colors" />
+                    </div>
+                  </div>
+                )}
+
+                {servicio.requiereEnvio && (
+                  <div className="space-y-3 mb-4">
+                    <input required type="text" placeholder="Dirección de envío (calle, número, piso)" value={servicioForm.direccion}
+                      onChange={(e) => setServicioForm(s => ({ ...s, direccion: e.target.value }))}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-amber transition-colors" />
+                    <div className="grid grid-cols-3 gap-3">
+                      <input required type="text" inputMode="numeric" pattern="[0-9]{5}" placeholder="C.P." value={servicioForm.cp}
+                        onChange={(e) => setServicioForm(s => ({ ...s, cp: e.target.value }))}
+                        className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-amber transition-colors" />
+                      <input required type="text" placeholder="Población" value={servicioForm.poblacion}
+                        onChange={(e) => setServicioForm(s => ({ ...s, poblacion: e.target.value }))}
+                        className="col-span-2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-amber transition-colors" />
+                    </div>
+                    <input required type="text" placeholder="Provincia" value={servicioForm.provincia}
+                      onChange={(e) => setServicioForm(s => ({ ...s, provincia: e.target.value }))}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-amber transition-colors" />
+                    <input required type="tel" placeholder="Teléfono de contacto" value={servicioForm.telefono}
+                      onChange={(e) => setServicioForm(s => ({ ...s, telefono: e.target.value }))}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-amber transition-colors" />
+                  </div>
+                )}
+
+                <label className="text-xs text-slate-400 uppercase tracking-widest font-bold">
+                  {servicio.id === 'recurso-multa' ? 'Datos de la multa' : (servicio.perDay ? 'Notas adicionales (opcional)' : (servicio.requiereEnvio ? 'Notas adicionales (opcional)' : 'Cuéntanos los detalles'))}
+                </label>
                 <textarea
-                  required
                   rows={4}
-                  placeholder={servicio.disponible
-                    ? 'Ej: número de matrícula, fecha de la multa, tipo de infracción…'
-                    : 'Cuéntanos qué buscas exactamente para priorizar este servicio en el roadmap.'}
+                  required={!servicio.perDay && !servicio.requiereEnvio}
+                  placeholder={
+                    servicio.id === 'recurso-multa'
+                      ? 'Número de boletín, fecha, matrícula, motivo, organismo emisor (DGT / Ayuntamiento / etc.) y cualquier detalle relevante. Si tienes el PDF, indica que lo enviarás por email tras pagar.'
+                      : servicio.id === 'cita-itv'
+                      ? 'Matrícula, ciudad / provincia y franja horaria preferente.'
+                      : servicio.perDay
+                      ? 'Cualquier detalle adicional sobre tu plan de datos.'
+                      : servicio.requiereEnvio
+                      ? 'Notas para el envío (ej. portal, horario de entrega…).'
+                      : (servicio.disponible
+                          ? 'Cuéntanos qué necesitas exactamente.'
+                          : 'Cuéntanos qué buscas para priorizar este servicio en el roadmap.')
+                  }
                   value={servicioForm.detalles}
                   onChange={(e) => setServicioForm(s => ({ ...s, detalles: e.target.value }))}
                   className="mt-2 w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-amber transition-colors resize-none"
                 />
+
+                {servicio.requierePago && (
+                  <div className="mt-4 bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
+                    <span className="text-sm text-slate-300">Total a pagar</span>
+                    <span className="text-2xl font-bold text-brand-amber">€{servicioTotal().toFixed(2)}</span>
+                  </div>
+                )}
 
                 {servicioError && (
                   <p className="text-sm text-red-300 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 mt-4">{servicioError}</p>
@@ -847,16 +971,22 @@ function App() {
 
                 <button
                   type="submit"
-                  disabled={servicioStatus === 'sending'}
+                  disabled={servicioStatus === 'sending' || isLoadingPayment}
                   className="mt-5 w-full bg-brand-amber text-brand-navy font-bold py-3 rounded-full hover:bg-yellow-400 transition-colors disabled:opacity-60 disabled:cursor-wait"
                 >
-                  {servicioStatus === 'sending'
-                    ? 'Enviando…'
-                    : (servicio.disponible ? 'Solicitar servicio' : 'Avisarme cuando esté listo')}
+                  {servicioStatus === 'sending' || isLoadingPayment
+                    ? 'Procesando…'
+                    : (servicio.requierePago
+                        ? `Pagar €${servicioTotal().toFixed(2)}`
+                        : (servicio.disponible ? 'Solicitar servicio' : 'Avisarme cuando esté listo'))}
                 </button>
 
                 <p className="text-[11px] text-slate-500 text-center mt-3">
-                  Sin coste por registrarte. {servicio.disponible ? 'El precio mostrado se cobra al completar el servicio.' : 'Te avisaremos sin compromiso.'}
+                  {servicio.requierePago
+                    ? 'Pago seguro con SumUp. Recibirás un email de confirmación con los siguientes pasos.'
+                    : (servicio.disponible
+                        ? 'Sin coste por registrarte. El precio mostrado se cobra al completar el servicio.'
+                        : 'Te avisaremos sin compromiso.')}
                 </p>
               </form>
             )}
