@@ -72,7 +72,7 @@ const MARKETPLACE = {
     items: [
       { id: 'baliza-premium', icon: '🚨', titulo: 'Baliza V16 Premium', desc: 'Homologada DGT 3.0 con SIM IoT incluida 12 años. Envío en 5 días hábiles a España peninsular.', precio: '49€', disponible: true, requierePago: true, amount: 49, requiereEnvio: true },
       { id: 'kit-emergencia', icon: '🧰', titulo: 'Kit Emergencia Coche', desc: 'Chaleco reflectante, triángulos homologados, botiquín y linterna LED en estuche. Envío en 5 días hábiles a España peninsular.', precio: '40€', disponible: true, requierePago: true, amount: 40, requiereEnvio: true },
-      { id: 'tag-gps', icon: '📍', titulo: 'Localizador GPS Bluetooth', desc: 'Para llaves, maletas o coche. Compatible Apple/Android.', precio: '25€', disponible: false },
+      { id: 'tag-gps', icon: '📍', titulo: 'Localizador GPS Bluetooth', desc: 'Para llaves, maletas o coche. Elige compatibilidad con iPhone o Android. Envío en 5 días hábiles a España peninsular.', precio: '30€', disponible: true, requierePago: true, amount: 30, requiereEnvio: true, requierePlataforma: true },
       { id: 'soporte-movil', icon: '📲', titulo: 'Soporte Móvil Coche', desc: 'Magnético con carga inalámbrica. Instalación al salpicadero.', precio: '15€', disponible: false },
     ],
   },
@@ -317,6 +317,7 @@ function App() {
       cp: '',
       provincia: '',
       telefono: '',
+      plataforma: '',
     });
     setServicioStatus('idle');
     setServicioError('');
@@ -355,11 +356,17 @@ function App() {
       for (const k of reqd) {
         if (!servicioForm[k]?.trim()) { setServicioError('Completa todos los datos de envío.'); return; }
       }
-      detallesTexto = [
+      if (servicio.requierePlataforma && !servicioForm.plataforma) {
+        setServicioError('Indica si lo quieres para iPhone o Android.');
+        return;
+      }
+      const lineas = [
         `Envío: ${servicioForm.direccion.trim()}, ${servicioForm.poblacion.trim()}, ${servicioForm.cp.trim()}, ${servicioForm.provincia.trim()}`,
         `Tel: ${servicioForm.telefono.trim()}`,
-        servicioForm.detalles.trim() || '(sin notas)',
-      ].join('\n');
+      ];
+      if (servicio.requierePlataforma) lineas.push(`Plataforma: ${servicioForm.plataforma === 'iphone' ? 'iPhone (Apple Find My)' : 'Android (Google Find My Device)'}`);
+      lineas.push(servicioForm.detalles.trim() || '(sin notas)');
+      detallesTexto = lineas.join('\n');
     } else {
       if (!servicioForm.detalles.trim()) { setServicioError('Cuéntanos los detalles.'); return; }
       detallesTexto = servicioForm.detalles.trim();
@@ -968,6 +975,36 @@ function App() {
                         value={servicioForm.dias}
                         onChange={(e) => setServicioForm(s => ({ ...s, dias: e.target.value }))}
                         className="mt-2 w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-brand-amber transition-colors" />
+                    </div>
+                  </div>
+                )}
+
+                {servicio.requierePlataforma && (
+                  <div className="mb-4">
+                    <label className="text-xs text-slate-400 uppercase tracking-widest font-bold">¿Para qué sistema?</label>
+                    <div className="grid grid-cols-2 gap-3 mt-2">
+                      <button type="button"
+                        onClick={() => setServicioForm(s => ({ ...s, plataforma: 'iphone' }))}
+                        className={`p-4 rounded-2xl border-2 transition-all text-center ${
+                          servicioForm.plataforma === 'iphone'
+                            ? 'border-brand-amber bg-brand-amber/10'
+                            : 'border-white/10 bg-white/5 hover:border-white/30'
+                        }`}>
+                        <div className="text-3xl mb-1">🍎</div>
+                        <div className="font-bold text-sm">iPhone</div>
+                        <div className="text-[10px] text-slate-400 mt-1">Apple Find My</div>
+                      </button>
+                      <button type="button"
+                        onClick={() => setServicioForm(s => ({ ...s, plataforma: 'android' }))}
+                        className={`p-4 rounded-2xl border-2 transition-all text-center ${
+                          servicioForm.plataforma === 'android'
+                            ? 'border-brand-amber bg-brand-amber/10'
+                            : 'border-white/10 bg-white/5 hover:border-white/30'
+                        }`}>
+                        <div className="text-3xl mb-1">🤖</div>
+                        <div className="font-bold text-sm">Android</div>
+                        <div className="text-[10px] text-slate-400 mt-1">Google Find My Device</div>
+                      </button>
                     </div>
                   </div>
                 )}
