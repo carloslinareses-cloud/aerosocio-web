@@ -513,7 +513,7 @@ function App() {
       </nav>
 
       {/* Hero Section */}
-      <main id="como-funciona" className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-32 grid lg:grid-cols-[1.5fr,1fr] gap-10 md:gap-16 items-center">
+      <main id="como-funciona" className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-32 grid lg:grid-cols-[1.5fr,1fr] gap-8 md:gap-12 items-stretch">
         <div className="absolute inset-0 z-0 flex rounded-[40px] overflow-hidden border border-white/5">
           <div className="w-[60%] h-full bg-cover bg-left opacity-30" style={{backgroundImage: 'url(https://images.unsplash.com/photo-1544016768-6820f8987107?q=80&w=2000)'}}></div>
           <div className="w-[40%] h-full bg-cover bg-right opacity-30" style={{backgroundImage: 'url(https://images.unsplash.com/photo-1511191060931-df10b808f921?q=80&w=2000)'}}></div>
@@ -566,18 +566,22 @@ function App() {
           </p>
         </div>
 
-        <div className="relative z-10 group bg-cover bg-center h-[350px] md:h-[500px] rounded-3xl md:rounded-4xl border border-white/5 flex items-end p-6 md:p-10 overflow-hidden" style={{backgroundImage: 'url(https://images.unsplash.com/photo-1596738140801-b7559ca5ca76?q=80&w=1000)'}}>
-          <div className="absolute inset-0 bg-gradient-to-t from-brand-navy via-brand-navy/70 to-transparent"></div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 md:w-48 md:h-48 bg-brand-amber/30 blur-3xl rounded-full"></div>
-          
-          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6">
-            <div className="p-3 md:p-4 bg-brand-amber rounded-2xl shadow-xl shadow-brand-amber/20">
-              <span className="text-3xl md:text-5xl">🚨</span>
+        <div className="relative z-10 group bg-cover bg-center min-h-[260px] md:min-h-0 rounded-3xl border border-white/5 flex items-center justify-center p-6 md:p-10 overflow-hidden" style={{backgroundImage: 'url(https://images.unsplash.com/photo-1596738140801-b7559ca5ca76?q=80&w=1000)'}}>
+          <div className="absolute inset-0 bg-gradient-to-br from-brand-navy/95 via-brand-navy/75 to-brand-navy/60"></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 md:w-72 md:h-72 bg-brand-amber/30 blur-3xl rounded-full"></div>
+
+          <div className="relative z-10 flex flex-col items-center text-center gap-5 md:gap-6">
+            <div className="p-4 md:p-5 bg-brand-amber rounded-2xl shadow-xl shadow-brand-amber/30">
+              <span className="text-4xl md:text-6xl">🚨</span>
             </div>
             <div>
-              <div className="text-[10px] md:text-xs font-bold text-brand-amber bg-brand-amber/10 border border-brand-amber/20 inline-block px-3 py-1 rounded-full mb-2">REGALO EXCLUSIVO</div>
-              <h4 className="text-xl md:text-3xl font-extrabold tracking-tight">Baliza V16 DGT</h4>
-              <p className="text-sm md:text-base text-slate-300 mt-1">Dispositivo homologado obligatorio (Valor €20).</p>
+              <div className="text-[10px] md:text-xs font-bold text-brand-amber bg-brand-amber/10 border border-brand-amber/20 inline-block px-3 py-1 rounded-full mb-3">REGALO EXCLUSIVO</div>
+              <h4 className="text-2xl md:text-4xl font-extrabold tracking-tight">Baliza V16 DGT</h4>
+              <p className="text-sm md:text-base text-slate-300 mt-2 max-w-xs">Dispositivo homologado obligatorio (Valor €20).</p>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-slate-400 mt-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              Envío gratuito a toda España peninsular
             </div>
           </div>
         </div>
