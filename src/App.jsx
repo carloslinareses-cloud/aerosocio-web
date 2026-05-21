@@ -71,7 +71,7 @@ const MARKETPLACE = {
     descripcion: 'Accesorios curados para el viajero y conductor moderno.',
     items: [
       { id: 'baliza-premium', icon: '🚨', titulo: 'Baliza V16 Premium', desc: 'Homologada DGT 3.0 con SIM IoT incluida 12 años. Envío en 5 días hábiles a España peninsular.', precio: '49€', disponible: true, requierePago: true, amount: 49, requiereEnvio: true },
-      { id: 'kit-emergencia', icon: '🧰', titulo: 'Kit Emergencia Coche', desc: 'Chaleco reflectante, triángulos, botiquín y linterna LED en estuche.', precio: '29€', disponible: false },
+      { id: 'kit-emergencia', icon: '🧰', titulo: 'Kit Emergencia Coche', desc: 'Chaleco reflectante, triángulos homologados, botiquín y linterna LED en estuche. Envío en 5 días hábiles a España peninsular.', precio: '40€', disponible: true, requierePago: true, amount: 40, requiereEnvio: true },
       { id: 'tag-gps', icon: '📍', titulo: 'Localizador GPS Bluetooth', desc: 'Para llaves, maletas o coche. Compatible Apple/Android.', precio: '25€', disponible: false },
       { id: 'soporte-movil', icon: '📲', titulo: 'Soporte Móvil Coche', desc: 'Magnético con carga inalámbrica. Instalación al salpicadero.', precio: '15€', disponible: false },
     ],
