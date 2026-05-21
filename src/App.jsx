@@ -72,8 +72,8 @@ const MARKETPLACE = {
     items: [
       { id: 'baliza-premium', icon: '🚨', titulo: 'Baliza V16 Premium', desc: 'Homologada DGT 3.0 con SIM IoT incluida 12 años. Envío en 5 días hábiles a España peninsular.', precio: '49€', disponible: true, requierePago: true, amount: 49, requiereEnvio: true },
       { id: 'kit-emergencia', icon: '🧰', titulo: 'Kit Emergencia Coche', desc: 'Chaleco reflectante, triángulos homologados, botiquín y linterna LED en estuche. Envío en 5 días hábiles a España peninsular.', precio: '40€', disponible: true, requierePago: true, amount: 40, requiereEnvio: true },
-      { id: 'tag-gps', icon: '📍', titulo: 'Localizador GPS Bluetooth', desc: 'Para llaves, maletas o coche. Elige compatibilidad con iPhone o Android. Envío en 5 días hábiles a España peninsular.', precio: '30€', disponible: true, requierePago: true, amount: 30, requiereEnvio: true, requierePlataforma: true },
-      { id: 'soporte-movil', icon: '📲', titulo: 'Soporte Móvil Coche', desc: 'Magnético con carga inalámbrica. Instalación al salpicadero.', precio: '15€', disponible: false },
+      { id: 'tag-gps', icon: '📍', titulo: 'Localizador GPS Bluetooth', desc: 'Para llaves, maletas o coche. Elige compatibilidad con iPhone o Android. Envío en 5 días hábiles a España peninsular.', precio: '35€', disponible: true, requierePago: true, amount: 35, requiereEnvio: true, requierePlataforma: true },
+      { id: 'soporte-movil', icon: '📲', titulo: 'Soporte Móvil Coche', desc: 'Magnético con carga inalámbrica. Instalación al salpicadero. Envío en 5 días hábiles a España peninsular.', precio: '20€', disponible: true, requierePago: true, amount: 20, requiereEnvio: true },
     ],
   },
   futuro: {
@@ -116,6 +116,7 @@ function loadSumupSdk() {
 
 function App() {
   const [user, setUser] = useState(null);
+  const [perfil, setPerfil] = useState(null); // { plan, es_vip, ... }
   const [modalContent, setModalContent] = useState(null);
   const [isLoadingPayment, setIsLoadingPayment] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(readPaymentFromUrl);
@@ -147,6 +148,17 @@ function App() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Cargar perfil del usuario para conocer su plan actual
+  const cargarPerfil = async (uid) => {
+    if (!uid) { setPerfil(null); return; }
+    const { data } = await supabase.from('perfiles').select('*').eq('id', uid).maybeSingle();
+    setPerfil(data || null);
+  };
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    cargarPerfil(user?.id);
+  }, [user?.id]);
 
   // Si veníamos de SumUp con ?pago=ok, limpiamos la URL una vez detectado
   useEffect(() => {
@@ -181,11 +193,24 @@ function App() {
           locale: 'es-ES',
           country: 'ES',
           showSubmitButton: true,
-          onResponse: (type, body) => {
+          onResponse: async (type, body) => {
             console.log('SumUp event:', type, body);
             if (type === 'success') {
+              const plan = sumupCheckout.plan;
               setSumupCheckout(null);
-              setPaymentSuccess({ plan: sumupCheckout.plan });
+              setPaymentSuccess({ plan });
+              // Si fue una membresia, marcar el perfil para que el marketplace sepa que ya tiene baliza
+              if (['monthly', 'annual', 'vipplus'].includes(plan) && user?.id) {
+                try {
+                  await supabase.from('perfiles').update({
+                    plan,
+                    es_vip: true,
+                  }).eq('id', user.id);
+                  cargarPerfil(user.id);
+                } catch (e) {
+                  console.warn('No se pudo actualizar perfiles.plan:', e);
+                }
+              }
             } else if (type === 'error') {
               setSumupError(body?.message || 'El pago no se pudo procesar. Revisa los datos de tu tarjeta o prueba con otra.');
             }
@@ -712,7 +737,11 @@ function App() {
           </div>
 
           <div className="space-y-14">
-            {Object.entries(MARKETPLACE).map(([key, cat]) => (
+            {Object.entries(MARKETPLACE).map(([key, cat]) => {
+              const planIncluyeBaliza = perfil?.plan === 'annual' || perfil?.plan === 'vipplus';
+              const visibles = cat.items.filter(it => !(it.id === 'baliza-premium' && planIncluyeBaliza));
+              if (visibles.length === 0) return null;
+              return (
               <div key={key}>
                 <div className="mb-6 md:mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-2">
                   <div>
@@ -721,7 +750,7 @@ function App() {
                   </div>
                 </div>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
-                  {cat.items.map((item) => (
+                  {visibles.map((item) => (
                     <button
                       key={item.id}
                       onClick={() => openServicio(item)}
@@ -753,7 +782,8 @@ function App() {
                   ))}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
 
           <p className="text-center text-slate-500 text-xs md:text-sm mt-12 max-w-2xl mx-auto">
