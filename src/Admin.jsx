@@ -6,7 +6,105 @@ const TABS = [
   { id: 'parking',  label: 'Parking',  icon: '🅿️' },
   { id: 'envios',   label: 'Envíos',   icon: '📦' },
   { id: 'socios',   label: 'Socios',   icon: '👥' },
+  { id: 'clientes', label: 'Clientes Externos', icon: '📇' },
 ];
+
+const ESTADOS_OUTREACH = {
+  pendiente:  { label: 'Sin contactar', color: 'bg-white/5 text-slate-300 border-white/10' },
+  contactado: { label: 'Contactado',    color: 'bg-blue-500/10 text-blue-300 border-blue-500/30' },
+  respondio:  { label: 'Respondió',     color: 'bg-yellow-500/10 text-yellow-300 border-yellow-500/30' },
+  convertido: { label: 'Convertido',    color: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' },
+  opt_out:    { label: 'No molestar',   color: 'bg-red-500/10 text-red-300 border-red-500/30' },
+};
+
+const MENSAJES_TEMPLATES = [
+  {
+    id: 'baliza_v16',
+    label: '🚨 Baliza V16 obligatoria',
+    body: `Hola {{nombre}}, soy Carlos de Valet Madrid. Te escribo porque desde enero 2026 la Baliza V16 conectada es obligatoria en España y tu {{marca}} {{modelo}} ({{matricula}}) la va a necesitar sí o sí.
+
+Como cliente nuestro te lo cuento antes que a nadie: he montado AeroSocio (un club de movilidad) donde con el Plan Anual de 49€ te llega gratis a casa. Y solo por ser cliente Valet te dejo descuento.
+
+Si te interesa: https://aerosocio.es
+
+¿Quieres que te aparte una?`,
+  },
+  {
+    id: 'esim_viaje',
+    label: '📱 eSIM internacional',
+    body: `Hola {{nombre}}, te escribo de AeroSocio (somos los del Valet en Barajas). ¿Algún viaje a la vista? Tenemos eSIM internacional para 190 países a 10€/día — sin roaming, activación instantánea por QR.
+
+Detalles: https://aerosocio.es
+
+Si no es ahora, ignora este mensaje. Si te apuntas yo me ocupo de todo.`,
+  },
+  {
+    id: 'recurso_multa',
+    label: '⚖️ Recurso de multa 9,90€',
+    body: `Hola {{nombre}}, ¿alguna multa pendiente últimamente con {{matricula}}? En AeroSocio te redactamos y presentamos el recurso por 9,90€.
+
+Mira: https://aerosocio.es
+
+Si no tienes, ignora el mensaje. ¡Saludos!`,
+  },
+  {
+    id: 'opt_in',
+    label: '✋ Opt-in inicial',
+    body: `Hola {{nombre}}, soy Carlos del Valet Madrid. Hemos lanzado AeroSocio, un club de movilidad pensado para clientes como vos: baliza V16 obligatoria, recurso de multas, eSIM en viajes, hoteles a buen precio y más.
+
+Si quieres recibir ofertas exclusivas, responde SÍ.
+Si prefieres no recibir más mensajes, responde BAJA y borraré tu número.
+
+Gracias por tu confianza estos años.`,
+  },
+];
+
+function aplicarTemplate(template, cliente) {
+  return template
+    .replace(/\{\{nombre\}\}/g, cliente.nombre || '')
+    .replace(/\{\{marca\}\}/g, cliente.marca_coche || '')
+    .replace(/\{\{modelo\}\}/g, cliente.modelo_coche || '')
+    .replace(/\{\{matricula\}\}/g, cliente.matricula || '')
+    .replace(/\{\{telefono\}\}/g, cliente.telefono || '')
+    .replace(/\{\{email\}\}/g, cliente.email || '');
+}
+
+function whatsappLink(phone, mensaje) {
+  const clean = (phone || '').replace(/[^0-9]/g, '');
+  return `https://wa.me/${clean}?text=${encodeURIComponent(mensaje)}`;
+}
+
+function parseCsv(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length === 0) return { headers: [], rows: [] };
+  const parseLine = (line) => {
+    const result = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (inQuotes) {
+        if (c === '"') {
+          if (line[i + 1] === '"') { cur += '"'; i++; } else { inQuotes = false; }
+        } else cur += c;
+      } else {
+        if (c === ',' || c === ';' || c === '\t') { result.push(cur); cur = ''; }
+        else if (c === '"' && cur === '') inQuotes = true;
+        else cur += c;
+      }
+    }
+    result.push(cur);
+    return result;
+  };
+  const headers = parseLine(lines[0]).map(h => h.trim().toLowerCase());
+  const rows = lines.slice(1).map(line => {
+    const cols = parseLine(line);
+    const row = {};
+    headers.forEach((h, i) => { row[h] = (cols[i] || '').trim(); });
+    return row;
+  });
+  return { headers, rows };
+}
 
 const ESTADOS = {
   pendiente:       { label: 'Pendiente',       color: 'bg-yellow-500/10 text-yellow-300 border-yellow-500/30' },
@@ -21,7 +119,7 @@ const ESTADOS = {
 };
 
 function Badge({ value }) {
-  const cfg = ESTADOS[value] || { label: value || '—', color: 'bg-white/5 text-slate-300 border-white/10' };
+  const cfg = ESTADOS[value] || ESTADOS_OUTREACH[value] || { label: value || '—', color: 'bg-white/5 text-slate-300 border-white/10' };
   return (
     <span className={`text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded-full border ${cfg.color}`}>
       {cfg.label}
@@ -46,6 +144,7 @@ export default function Admin({ supabase, user, onExit }) {
   const [parking, setParking] = useState([]);
   const [envios, setEnvios] = useState([]);
   const [socios, setSocios] = useState([]);
+  const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [edit, setEdit] = useState(null);   // { tabla, fila, estadoField }
@@ -53,25 +152,36 @@ export default function Admin({ supabase, user, onExit }) {
   const [editSaving, setEditSaving] = useState(false);
   const [filterEstado, setFilterEstado] = useState('todos');
   const [search, setSearch] = useState('');
+  // Estado especifico para la pestaña de clientes externos
+  const [importCsvOpen, setImportCsvOpen] = useState(false);
+  const [csvText, setCsvText] = useState('');
+  const [csvPreview, setCsvPreview] = useState(null); // { rows, valid, invalid }
+  const [importing, setImporting] = useState(false);
+  const [templateId, setTemplateId] = useState('baliza_v16');
+  const [templateBody, setTemplateBody] = useState(MENSAJES_TEMPLATES[0].body);
+  const [filtroMarca, setFiltroMarca] = useState('');
 
   const loadAll = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const [s1, s2, s3, s4] = await Promise.all([
+      const [s1, s2, s3, s4, s5] = await Promise.all([
         supabase.from('solicitudes_servicios').select('*').order('created_at', { ascending: false }),
         supabase.from('solicitudes_parking').select('*').order('created_at', { ascending: false }),
         supabase.from('envios_baliza').select('*').order('created_at', { ascending: false }),
         supabase.from('perfiles').select('*'),
+        supabase.from('clientes_externos').select('*').order('created_at', { ascending: false }),
       ]);
       if (s1.error) throw s1.error;
       if (s2.error) throw s2.error;
       if (s3.error) throw s3.error;
       if (s4.error) console.warn('perfiles:', s4.error);
+      if (s5.error) console.warn('clientes_externos:', s5.error);
       setPedidos(s1.data || []);
       setParking(s2.data || []);
       setEnvios(s3.data || []);
       setSocios(s4.data || []);
+      setClientes(s5.data || []);
     } catch (e) {
       console.error(e);
       setError(e.message || 'No pudimos cargar datos. ¿Aplicaste las RLS de admin en Supabase?');
@@ -123,6 +233,75 @@ export default function Admin({ supabase, user, onExit }) {
     } catch (e2) {
       alert('Error guardando: ' + e2.message);
       setEditSaving(false);
+    }
+  };
+
+  // --- Clientes externos: parser, preview, import, marcar contactado ---
+  const previsualizarCsv = () => {
+    if (!csvText.trim()) { setCsvPreview(null); return; }
+    try {
+      const parsed = parseCsv(csvText);
+      const valid = [];
+      const invalid = [];
+      const phoneOk = /^\+?\d{8,15}$/;
+      parsed.rows.forEach((r) => {
+        const tel = (r.telefono || r.phone || '').replace(/\s+/g, '');
+        if (!tel || !phoneOk.test(tel.replace(/^\+/, ''))) {
+          invalid.push({ row: r, motivo: 'Teléfono inválido o vacío' });
+          return;
+        }
+        valid.push({
+          nombre: r.nombre || r.name || '',
+          telefono: tel,
+          email: r.email || '',
+          matricula: (r.matricula || r.plate || '').toUpperCase(),
+          marca_coche: r.marca || r.marca_coche || r.brand || '',
+          modelo_coche: r.modelo || r.modelo_coche || r.model || '',
+          anio_coche: parseInt(r.anio || r.year || r.anio_coche || '', 10) || null,
+          ultima_compra: r.ultima_compra || r.last_purchase || null,
+          total_compras: parseInt(r.total_compras || r.compras || '1', 10) || 1,
+          notas: r.notas || r.notes || '',
+        });
+      });
+      setCsvPreview({ valid, invalid });
+    } catch (e) {
+      setError('Error parseando CSV: ' + e.message);
+      setCsvPreview(null);
+    }
+  };
+
+  const importarClientes = async () => {
+    if (!csvPreview || csvPreview.valid.length === 0) return;
+    setImporting(true);
+    try {
+      const rows = csvPreview.valid.map(c => ({
+        ...c,
+        source: 'valet_madrid',
+        consentimiento_marketing: true,
+        estado_outreach: 'pendiente',
+      }));
+      const { error: err } = await supabase.from('clientes_externos').insert(rows);
+      if (err) throw err;
+      setCsvText('');
+      setCsvPreview(null);
+      setImportCsvOpen(false);
+      await loadAll();
+    } catch (e) {
+      alert('Error importando: ' + e.message);
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const marcarContactado = async (cliente) => {
+    try {
+      await supabase.from('clientes_externos').update({
+        estado_outreach: 'contactado',
+        enviado_at: new Date().toISOString(),
+      }).eq('id', cliente.id);
+      await loadAll();
+    } catch (e) {
+      console.warn('No se pudo marcar como contactado:', e);
     }
   };
 
@@ -287,6 +466,24 @@ export default function Admin({ supabase, user, onExit }) {
           />
         )}
 
+        {tab === 'clientes' && (
+          <ClientesPanel
+            clientes={clientes}
+            loading={loading}
+            templateId={templateId} setTemplateId={(id) => {
+              setTemplateId(id);
+              const t = MENSAJES_TEMPLATES.find(x => x.id === id);
+              if (t) setTemplateBody(t.body);
+            }}
+            templateBody={templateBody} setTemplateBody={setTemplateBody}
+            filtroMarca={filtroMarca} setFiltroMarca={setFiltroMarca}
+            filterEstado={filterEstado} setFilterEstado={setFilterEstado}
+            search={search} setSearch={setSearch}
+            onImport={() => setImportCsvOpen(true)}
+            onContactado={marcarContactado}
+          />
+        )}
+
         {tab === 'socios' && (
           <SectionTable
             titulo="Socios registrados"
@@ -370,6 +567,207 @@ export default function Admin({ supabase, user, onExit }) {
           </div>
         </div>
       )}
+
+      {/* Modal Importar CSV */}
+      {importCsvOpen && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setImportCsvOpen(false)}>
+          <div className="bg-brand-navy border border-white/10 rounded-3xl p-6 md:p-8 max-w-3xl w-full relative max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setImportCsvOpen(false)} aria-label="Cerrar"
+              className="absolute top-5 right-5 text-slate-400 hover:text-white">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <h3 className="text-2xl font-bold mb-2">Importar clientes (CSV)</h3>
+            <p className="text-sm text-slate-400 mb-5">Copia las filas desde Excel/Google Sheets y pégalas aquí. La primera fila debe tener los encabezados.</p>
+
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-3 mb-4 text-xs font-mono">
+              <div className="text-slate-400 mb-1">Encabezados aceptados (en este orden o cualquiera):</div>
+              <div className="text-brand-amber">nombre, telefono, email, matricula, marca, modelo, anio, ultima_compra, total_compras, notas</div>
+              <div className="text-slate-500 mt-2">Separadores: coma, punto y coma o tab. Teléfono en formato internacional sin espacios (ej: 34600123456).</div>
+            </div>
+
+            <textarea rows={8} value={csvText} onChange={(e) => setCsvText(e.target.value)}
+              placeholder={`nombre,telefono,marca,modelo,matricula\nJuan Pérez,34600123456,BMW,Serie 3,1234ABC\nMaría García,34611222333,Seat,Ibiza,5678BCD`}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-mono text-xs placeholder-slate-600 focus:outline-none focus:border-brand-amber resize-none"></textarea>
+
+            <div className="flex gap-3 mt-4">
+              <button onClick={previsualizarCsv} disabled={!csvText.trim()}
+                className="flex-1 bg-white/10 border border-white/20 hover:bg-white/15 text-white font-bold py-3 rounded-full transition-colors disabled:opacity-60">
+                Previsualizar
+              </button>
+              {csvPreview && csvPreview.valid.length > 0 && (
+                <button onClick={importarClientes} disabled={importing}
+                  className="flex-[2] bg-brand-amber text-brand-navy font-bold py-3 rounded-full hover:bg-yellow-400 transition-colors disabled:opacity-60">
+                  {importing ? 'Importando…' : `Importar ${csvPreview.valid.length} clientes`}
+                </button>
+              )}
+            </div>
+
+            {csvPreview && (
+              <div className="mt-5">
+                <div className="flex items-center gap-4 mb-3 text-sm">
+                  <span className="text-emerald-300">✓ Válidos: {csvPreview.valid.length}</span>
+                  {csvPreview.invalid.length > 0 && <span className="text-red-300">✕ Inválidos: {csvPreview.invalid.length}</span>}
+                </div>
+                {csvPreview.valid.length > 0 && (
+                  <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden max-h-64 overflow-y-auto">
+                    <table className="w-full text-xs">
+                      <thead className="bg-white/5">
+                        <tr><th className="px-3 py-2 text-left">Nombre</th><th className="px-3 py-2 text-left">Tel</th><th className="px-3 py-2 text-left">Coche</th><th className="px-3 py-2 text-left">Matrícula</th></tr>
+                      </thead>
+                      <tbody>
+                        {csvPreview.valid.slice(0, 50).map((c, i) => (
+                          <tr key={i} className="border-t border-white/5">
+                            <td className="px-3 py-2">{c.nombre}</td>
+                            <td className="px-3 py-2 text-slate-400">{c.telefono}</td>
+                            <td className="px-3 py-2">{c.marca_coche} {c.modelo_coche}</td>
+                            <td className="px-3 py-2 font-mono">{c.matricula}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {csvPreview.valid.length > 50 && <p className="text-center text-xs text-slate-500 py-2">…y {csvPreview.valid.length - 50} más</p>}
+                  </div>
+                )}
+                {csvPreview.invalid.length > 0 && (
+                  <details className="mt-3 text-xs text-slate-400">
+                    <summary className="cursor-pointer hover:text-white">Ver filas rechazadas ({csvPreview.invalid.length})</summary>
+                    <div className="mt-2 bg-red-500/5 border border-red-500/20 rounded-xl p-3 max-h-32 overflow-y-auto">
+                      {csvPreview.invalid.map((inv, i) => (
+                        <div key={i} className="py-1 border-b border-red-500/10 last:border-b-0">
+                          <span className="text-red-300">{inv.motivo}:</span> <span className="font-mono text-slate-500">{JSON.stringify(inv.row).slice(0, 120)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ClientesPanel({ clientes, loading, templateId, setTemplateId, templateBody, setTemplateBody, filtroMarca, setFiltroMarca, filterEstado, setFilterEstado, search, setSearch, onImport, onContactado }) {
+  const marcasUnicas = Array.from(new Set(clientes.map(c => c.marca_coche).filter(Boolean))).sort();
+
+  const filtrados = clientes.filter(c => {
+    if (filtroMarca && c.marca_coche !== filtroMarca) return false;
+    if (filterEstado !== 'todos' && (c.estado_outreach || 'pendiente') !== filterEstado) return false;
+    if (search && !JSON.stringify(c).toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  return (
+    <div>
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight">Clientes Externos</h2>
+          <p className="text-slate-400 text-sm mt-1">Tu base de clientes históricos del valet. Personaliza el mensaje con sus datos y abre WhatsApp Web con un click — vos envías manualmente para no exponer tu cuenta.</p>
+        </div>
+        <button onClick={onImport}
+          className="bg-brand-amber text-brand-navy font-bold py-2 px-4 rounded-full hover:bg-yellow-400 transition-colors text-sm whitespace-nowrap">
+          + Importar CSV
+        </button>
+      </div>
+
+      <div className="bg-white/5 border border-white/10 rounded-3xl p-5 mb-5">
+        <label className="text-xs text-slate-400 uppercase tracking-widest font-bold">Plantilla de mensaje</label>
+        <div className="flex flex-wrap gap-2 mt-2 mb-3">
+          {MENSAJES_TEMPLATES.map(t => (
+            <button key={t.id} onClick={() => setTemplateId(t.id)}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
+                templateId === t.id
+                  ? 'bg-brand-amber text-brand-navy'
+                  : 'bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10'
+              }`}>{t.label}</button>
+          ))}
+        </div>
+        <textarea rows={8} value={templateBody}
+          onChange={(e) => setTemplateBody(e.target.value)}
+          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-brand-amber resize-none"></textarea>
+        <p className="text-[11px] text-slate-500 mt-2">
+          Variables disponibles: <code className="text-brand-amber">{'{{nombre}}'}</code>, <code className="text-brand-amber">{'{{marca}}'}</code>, <code className="text-brand-amber">{'{{modelo}}'}</code>, <code className="text-brand-amber">{'{{matricula}}'}</code>, <code className="text-brand-amber">{'{{email}}'}</code>. Se reemplazan automáticamente al abrir WhatsApp.
+        </p>
+      </div>
+
+      <div className="flex flex-col md:flex-row gap-3 mb-5">
+        <select value={filtroMarca} onChange={(e) => setFiltroMarca(e.target.value)}
+          className="bg-white/5 border border-white/10 rounded-full px-4 py-2 text-white text-sm focus:outline-none focus:border-brand-amber">
+          <option value="">Todas las marcas</option>
+          {marcasUnicas.map(m => <option key={m} value={m}>{m}</option>)}
+        </select>
+        <div className="flex gap-1 overflow-x-auto bg-white/5 border border-white/10 rounded-full p-1">
+          {['todos', ...Object.keys(ESTADOS_OUTREACH)].map(op => (
+            <button key={op} onClick={() => setFilterEstado(op)}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${
+                filterEstado === op ? 'bg-brand-amber text-brand-navy' : 'text-slate-300 hover:bg-white/5'
+              }`}>
+              {op === 'todos' ? 'Todos' : ESTADOS_OUTREACH[op].label}
+            </button>
+          ))}
+        </div>
+        <input type="search" placeholder="Buscar por nombre, matrícula, teléfono…" value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-brand-amber" />
+      </div>
+
+      <div className="text-sm text-slate-400 mb-3">{filtrados.length} de {clientes.length} clientes</div>
+
+      <div className="bg-white/5 border border-white/10 rounded-3xl overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-white/10">
+                <th className="text-[10px] uppercase tracking-widest text-slate-400 font-bold px-4 py-3">Cliente</th>
+                <th className="text-[10px] uppercase tracking-widest text-slate-400 font-bold px-4 py-3">Coche</th>
+                <th className="text-[10px] uppercase tracking-widest text-slate-400 font-bold px-4 py-3">Matrícula</th>
+                <th className="text-[10px] uppercase tracking-widest text-slate-400 font-bold px-4 py-3">Estado</th>
+                <th className="text-[10px] uppercase tracking-widest text-slate-400 font-bold px-4 py-3">Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={5} className="text-center py-12 text-slate-500">Cargando…</td></tr>
+              ) : filtrados.length === 0 ? (
+                <tr><td colSpan={5} className="text-center py-12 text-slate-500">
+                  {clientes.length === 0
+                    ? 'Aún no has importado clientes. Click en "+ Importar CSV" arriba.'
+                    : 'No hay clientes que coincidan con los filtros.'}
+                </td></tr>
+              ) : filtrados.map((c) => {
+                const mensaje = aplicarTemplate(templateBody, c);
+                const link = whatsappLink(c.telefono, mensaje);
+                return (
+                  <tr key={c.id} className="border-b border-white/5 last:border-b-0 hover:bg-white/5 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="font-bold">{c.nombre || '—'}</div>
+                      <div className="text-[11px] text-slate-500">{c.telefono}</div>
+                      {c.email && <div className="text-[11px] text-slate-500">{c.email}</div>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="text-sm">{c.marca_coche} {c.modelo_coche}</div>
+                      {c.anio_coche && <div className="text-[11px] text-slate-500">{c.anio_coche}</div>}
+                    </td>
+                    <td className="px-4 py-3"><div className="text-sm font-mono">{c.matricula || '—'}</div></td>
+                    <td className="px-4 py-3"><Badge value={c.estado_outreach || 'pendiente'} /></td>
+                    <td className="px-4 py-3">
+                      <a href={link} target="_blank" rel="noopener noreferrer"
+                        onClick={() => onContactado(c)}
+                        className="inline-flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-bold text-xs px-3 py-2 rounded-full hover:bg-emerald-500/25 transition-colors whitespace-nowrap">
+                        📱 WhatsApp
+                      </a>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
