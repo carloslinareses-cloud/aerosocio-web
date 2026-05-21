@@ -21,41 +21,51 @@ const MENSAJES_TEMPLATES = [
   {
     id: 'baliza_v16',
     label: '🚨 Baliza V16 obligatoria',
-    body: `Hola {{nombre}}, soy Carlos de Valet Madrid. Te escribo porque desde enero 2026 la Baliza V16 conectada es obligatoria en España y tu {{marca}} {{modelo}} ({{matricula}}) la va a necesitar sí o sí.
+    body: `Hola {{nombre}}, soy Carlos, fundador de AeroSocio.
 
-Como cliente nuestro te lo cuento antes que a nadie: he montado AeroSocio (un club de movilidad) donde con el Plan Anual de 49€ te llega gratis a casa. Y solo por ser cliente Valet te dejo descuento.
+Te escribo con un aviso importante: desde el 1 de enero de 2026, la Baliza V16 conectada será obligatoria en España y tu {{marca}} {{modelo}} ({{matricula}}) va a necesitar una sí o sí.
 
-Si te interesa: https://aerosocio.es
+En AeroSocio te la regalamos al suscribirte al Plan Anual (49€/año) y te la enviamos a casa sin coste. Te ahorras la búsqueda de modelos homologados y la cumples antes de la fecha.
+
+Más info: https://aerosocio.es
 
 ¿Quieres que te aparte una?`,
   },
   {
     id: 'esim_viaje',
     label: '📱 eSIM internacional',
-    body: `Hola {{nombre}}, te escribo de AeroSocio (somos los del Valet en Barajas). ¿Algún viaje a la vista? Tenemos eSIM internacional para 190 países a 10€/día — sin roaming, activación instantánea por QR.
+    body: `Hola {{nombre}}, soy Carlos de AeroSocio.
 
-Detalles: https://aerosocio.es
+¿Algún viaje a la vista? Tenemos eSIM internacional para 190 países a 10€/día. Sin roaming, sin tarjetas físicas — recibes un QR por email y activas el plan en 2 minutos.
 
-Si no es ahora, ignora este mensaje. Si te apuntas yo me ocupo de todo.`,
+Si tienes pensado viajar este mes, te lo dejo todo gestionado en menos de 24 h.
+
+https://aerosocio.es
+
+Si no es para ti ahora, ignora este mensaje. Saludos.`,
   },
   {
     id: 'recurso_multa',
     label: '⚖️ Recurso de multa 9,90€',
-    body: `Hola {{nombre}}, ¿alguna multa pendiente últimamente con {{matricula}}? En AeroSocio te redactamos y presentamos el recurso por 9,90€.
+    body: `Hola {{nombre}}, soy Carlos de AeroSocio.
 
-Mira: https://aerosocio.es
+¿Te ha llegado alguna multa últimamente con tu {{marca}} ({{matricula}})? Te redactamos el recurso formal y lo presentamos en la sede electrónica del organismo competente por 9,90€.
 
-Si no tienes, ignora el mensaje. ¡Saludos!`,
+Detalles: https://aerosocio.es
+
+Si no tienes ninguna pendiente, ignora este mensaje. Saludos.`,
   },
   {
     id: 'opt_in',
     label: '✋ Opt-in inicial',
-    body: `Hola {{nombre}}, soy Carlos del Valet Madrid. Hemos lanzado AeroSocio, un club de movilidad pensado para clientes como vos: baliza V16 obligatoria, recurso de multas, eSIM en viajes, hoteles a buen precio y más.
+    body: `Hola {{nombre}}, soy Carlos de AeroSocio, un club de movilidad para conductores.
 
-Si quieres recibir ofertas exclusivas, responde SÍ.
-Si prefieres no recibir más mensajes, responde BAJA y borraré tu número.
+Recibes este mensaje porque aceptaste recibir información sobre servicios de movilidad. Somos un servicio nuevo y queremos ofrecer ventajas exclusivas a un grupo reducido de socios fundadores: Baliza V16 obligatoria gratis, recurso de multas, eSIM en viajes, gestoría DGT y mucho más.
 
-Gracias por tu confianza estos años.`,
+Si quieres recibir nuestras ofertas, responde SÍ.
+Si prefieres no recibir más mensajes, responde BAJA y borraré tu número de inmediato.
+
+Gracias.`,
   },
 ];
 
