@@ -1,0 +1,9 @@
+# Todo el catálogo es público y queremos que Google lo recorra entero.
+User-agent: *
+Allow: /
+
+# Lo de /api/ no son páginas: son las piezas que cobran. No aportan nada en el
+# buscador y rastrearlas solo gasta ejecuciones del Worker.
+Disallow: /api/
+
+Sitemap: https://aerosocio.es/sitemap-index.xml

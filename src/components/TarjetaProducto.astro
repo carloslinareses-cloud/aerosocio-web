@@ -1,0 +1,71 @@
+---
+import { euros } from '../lib/dinero.js';
+
+interface Props {
+  producto: {
+    slug: string;
+    nombre: string;
+    descripcionCorta: string;
+    precio: number;
+    precioAnterior?: number;
+    imagen: string | null;
+    disponible: boolean;
+    ejemplo?: boolean;
+  };
+}
+
+const { producto: p } = Astro.props;
+const enlace = `/producto/${p.slug}`;
+---
+
+<article class="flex flex-col overflow-hidden rounded-2xl border border-borde bg-tarjeta">
+  <a href={enlace} class="block aspect-square bg-marino" tabindex="-1" aria-hidden="true">
+    {
+      p.imagen ? (
+        <img
+          src={p.imagen}
+          alt=""
+          width="600"
+          height="600"
+          loading="lazy"
+          class="h-full w-full object-cover"
+        />
+      ) : (
+        <span class="grid h-full place-items-center text-sm text-texto3">Sin foto todavía</span>
+      )
+    }
+  </a>
+
+  <div class="flex flex-1 flex-col gap-2 p-4">
+    {
+      p.ejemplo && (
+        <span class="self-start rounded-full bg-oferta/15 px-2 py-0.5 text-xs font-bold text-oferta">
+          Ejemplo
+        </span>
+      )
+    }
+    <h2 class="font-bold leading-snug">
+      <a href={enlace} class="hover:text-ambar">{p.nombre}</a>
+    </h2>
+    <p class="text-sm text-texto2">{p.descripcionCorta}</p>
+
+    <div class="mt-auto flex items-end justify-between gap-3 pt-3">
+      <p class="tabular-nums">
+        <span class="text-xl font-black">{euros(p.precio)}</span>
+        {
+          p.precioAnterior && (
+            <s class="ml-1 text-sm text-texto3">{euros(p.precioAnterior)}</s>
+          )
+        }
+      </p>
+      <button
+        type="button"
+        data-anadir={p.slug}
+        disabled={!p.disponible}
+        class="rounded-full bg-ambar px-4 py-2 text-sm font-bold text-marino hover:bg-ambar-hondo disabled:opacity-40"
+      >
+        {p.disponible ? 'Añadir' : 'Agotado'}
+      </button>
+    </div>
+  </div>
+</article>

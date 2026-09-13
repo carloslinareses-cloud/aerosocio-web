@@ -1,0 +1,117 @@
+---
+import Base from '../layouts/Base.astro';
+import { PRODUCTOS } from '../datos/productos.js';
+
+// Lo justo para pintar el carrito en el navegador. El precio que se ve aquí es
+// informativo: el que se cobra lo recalcula el Worker con este mismo catálogo.
+const catalogo = PRODUCTOS.map((p) => ({
+  slug: p.slug,
+  nombre: p.nombre,
+  precio: p.precio,
+  imagen: p.imagen,
+  envio: p.envio.coste,
+}));
+---
+
+<Base titulo="Carrito" descripcion="Revisa los productos de tu pedido en AeroSocio.">
+  <Fragment slot="head">
+    {/* El carrito de cada uno no es una página para el buscador. */}
+    <meta name="robots" content="noindex" />
+  </Fragment>
+
+  <section class="mx-auto max-w-3xl px-4 py-10">
+    <h1 class="text-3xl font-black sm:text-4xl">Tu carrito</h1>
+
+    <p id="vacio" class="mt-8 text-texto2" hidden>
+      Tu carrito está vacío. <a href="/productos" class="font-bold text-ambar underline">Ver productos</a>
+    </p>
+
+    <ul id="lineas" class="mt-8 flex flex-col divide-y divide-borde border-y border-borde"></ul>
+
+    <div id="resumen" class="mt-6 flex flex-col gap-2 tabular-nums" hidden>
+      <p class="flex justify-between text-texto2"><span>Productos</span><span id="subtotal"></span></p>
+      <p class="flex justify-between text-texto2"><span>Envío</span><span id="envio"></span></p>
+      <p class="flex justify-between border-t border-borde pt-3 text-xl font-black">
+        <span>Total</span><span id="total"></span>
+      </p>
+      <p class="text-sm text-texto3">IVA incluido. El importe final se confirma antes de pagar.</p>
+
+      <button
+        id="pagar"
+        type="button"
+        class="mt-4 rounded-full bg-ambar px-8 py-4 text-lg font-black text-marino hover:bg-ambar-hondo disabled:opacity-40"
+      >
+        Tramitar pedido
+      </button>
+      <p id="aviso" role="status" class="text-sm text-oferta"></p>
+    </div>
+  </section>
+
+  <script type="application/json" id="catalogo" set:html={JSON.stringify(catalogo)} />
+
+  <script>
+    import { leerCarrito, cambiarCantidad, quitar } from '../scripts/carrito.js';
+    import { euros } from '../lib/dinero.js';
+
+    const catalogo = JSON.parse(document.getElementById('catalogo').textContent);
+    const porSlug = new Map(catalogo.map((p) => [p.slug, p]));
+    const $ = (id) => document.getElementById(id);
+
+    const escapar = (t) =>
+      String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+    function pintar() {
+      // Un producto que ya no está en el catálogo no se enseña: se cobraría
+      // algo que no existe.
+      const lineas = leerCarrito().filter((l) => porSlug.has(l.slug));
+      $('vacio').hidden = lineas.length > 0;
+      $('resumen').hidden = lineas.length === 0;
+
+      let subtotal = 0;
+      let envio = 0;
+      $('lineas').innerHTML = lineas
+        .map((l) => {
+          const p = porSlug.get(l.slug);
+          subtotal += p.precio * l.cantidad;
+          envio = Math.max(envio, p.envio);
+          return `
+            <li class="flex items-center gap-4 py-4">
+              <div class="min-w-0 flex-1">
+                <a href="/producto/${escapar(p.slug)}" class="font-bold hover:text-ambar">${escapar(p.nombre)}</a>
+                <p class="text-sm text-texto3">${euros(p.precio)} la unidad</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <button type="button" data-menos="${escapar(p.slug)}" aria-label="Quitar una unidad" class="h-9 w-9 rounded-full border border-borde">−</button>
+                <span class="w-6 text-center tabular-nums">${l.cantidad}</span>
+                <button type="button" data-mas="${escapar(p.slug)}" aria-label="Añadir una unidad" class="h-9 w-9 rounded-full border border-borde">+</button>
+              </div>
+              <p class="w-24 text-right font-bold tabular-nums">${euros(p.precio * l.cantidad)}</p>
+              <button type="button" data-quitar="${escapar(p.slug)}" class="text-sm text-texto3 underline">Quitar</button>
+            </li>`;
+        })
+        .join('');
+
+      $('subtotal').textContent = euros(subtotal);
+      $('envio').textContent = euros(envio);
+      $('total').textContent = euros(subtotal + envio);
+    }
+
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      const actual = (slug) => leerCarrito().find((l) => l.slug === slug)?.cantidad || 0;
+      if (b.dataset.mas) cambiarCantidad(b.dataset.mas, actual(b.dataset.mas) + 1);
+      if (b.dataset.menos) cambiarCantidad(b.dataset.menos, actual(b.dataset.menos) - 1);
+      if (b.dataset.quitar) quitar(b.dataset.quitar);
+    });
+
+    // Los datos de envío y el pago van en /pedido.
+    $('pagar').addEventListener('click', () => {
+      window.location.href = '/pedido';
+    });
+
+    window.addEventListener('carrito:cambio', pintar);
+    window.addEventListener('storage', pintar);
+    pintar();
+  </script>
+</Base>

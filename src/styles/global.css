@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+/**
+ * Los colores de AeroSocio, recuperados del sitio anterior (src/index.css en
+ * el commit 630fb87): azul marino y ámbar sobre fondo casi negro. El nombre se
+ * queda, así que la identidad también.
+ */
+@theme {
+  --color-marino: #0d1b2a;
+  --color-noche: #08101a;
+  --color-ambar: #f39c12;
+  --color-ambar-hondo: #d68910;
+
+  --color-tarjeta: #13243a;
+  --color-borde: #1f3552;
+  --color-texto: #ffffff;
+  --color-texto2: #a8b8cc;
+  --color-texto3: #6b7f96;
+
+  --color-oferta: #e74c3c;
+  --color-exito: #2ecc71;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: var(--color-noche);
+  color: var(--color-texto);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Safari hace zoom al enfocar un campo de menos de 16 px. */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ambar);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

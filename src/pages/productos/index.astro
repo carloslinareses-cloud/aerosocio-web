@@ -1,0 +1,19 @@
+---
+import Base from '../../layouts/Base.astro';
+import TarjetaProducto from '../../components/TarjetaProducto.astro';
+import { PRODUCTOS } from '../../datos/productos.js';
+---
+
+<Base
+  titulo="Productos"
+  descripcion="Todos los productos de AeroSocio con envío a toda España. Precios con IVA incluido."
+>
+  <section class="mx-auto max-w-6xl px-4 py-10">
+    <h1 class="text-3xl font-black sm:text-4xl">Productos</h1>
+    <p class="mt-2 text-texto2">Precios con IVA incluido. Envío a toda España.</p>
+
+    <div class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {PRODUCTOS.map((p) => <TarjetaProducto producto={p} />)}
+    </div>
+  </section>
+</Base>

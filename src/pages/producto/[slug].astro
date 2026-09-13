@@ -1,0 +1,135 @@
+---
+import Base from '../../layouts/Base.astro';
+import { PRODUCTOS } from '../../datos/productos.js';
+import { euros, importeSchema } from '../../lib/dinero.js';
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ *  LA FICHA DE PRODUCTO
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * La página que tiene que ganar en Google. Se genera una por producto, ya
+ * escrita, con dos cosas que no se ven pero pesan mucho:
+ *
+ *  · El <title> y la descripción propios del producto.
+ *  · Datos estructurados (schema.org/Product): precio, disponibilidad, coste y
+ *    plazo de envío, y política de devolución. Es lo que permite a Google
+ *    enseñar el precio y el "Envío" directamente en los resultados, y lo que
+ *    pide Merchant Center para los listados gratuitos de Shopping.
+ */
+export function getStaticPaths() {
+  return PRODUCTOS.map((producto) => ({ params: { slug: producto.slug }, props: { producto } }));
+}
+
+const { producto: p } = Astro.props;
+const url = new URL(`/producto/${p.slug}`, Astro.site).href;
+const imagenAbsoluta = p.imagen ? new URL(p.imagen, Astro.site).href : undefined;
+
+const datosEstructurados = {
+  '@context': 'https://schema.org',
+  '@type': 'Product',
+  name: p.nombre,
+  description: p.descripcionCorta,
+  sku: p.sku,
+  category: p.categoria,
+  ...(imagenAbsoluta ? { image: [imagenAbsoluta] } : {}),
+  offers: {
+    '@type': 'Offer',
+    url,
+    priceCurrency: 'EUR',
+    price: importeSchema(p.precio),
+    itemCondition: 'https://schema.org/NewCondition',
+    availability: p.disponible ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+    shippingDetails: {
+      '@type': 'OfferShippingDetails',
+      shippingRate: { '@type': 'MonetaryAmount', value: importeSchema(p.envio.coste), currency: 'EUR' },
+      shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'ES' },
+      deliveryTime: {
+        '@type': 'ShippingDeliveryTime',
+        handlingTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 1, unitCode: 'DAY' },
+        transitTime: {
+          '@type': 'QuantitativeValue',
+          minValue: p.envio.diasMin,
+          maxValue: p.envio.diasMax,
+          unitCode: 'DAY',
+        },
+      },
+    },
+    // 14 días: el derecho de desistimiento que la ley da a todo consumidor en
+    // España. ⚠️ Quién paga el envío de vuelta tiene que coincidir con lo que
+    // diga la página de Envíos y devoluciones; si no, Google marca el error.
+    hasMerchantReturnPolicy: {
+      '@type': 'MerchantReturnPolicy',
+      applicableCountry: 'ES',
+      returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+      merchantReturnDays: 14,
+      returnMethod: 'https://schema.org/ReturnByMail',
+      returnFees: 'https://schema.org/ReturnFeesCustomerResponsibility',
+    },
+  },
+};
+---
+
+<Base titulo={p.nombre} descripcion={p.descripcionCorta} imagen={p.imagen ?? undefined}>
+  <Fragment slot="head">
+    {/* Un producto de ejemplo nunca debe acabar en Google. */}
+    {p.ejemplo && <meta name="robots" content="noindex, nofollow" />}
+    <script type="application/ld+json" set:html={JSON.stringify(datosEstructurados)} />
+  </Fragment>
+
+  <nav aria-label="Migas de pan" class="mx-auto max-w-6xl px-4 pt-6 text-sm text-texto3">
+    <a href="/productos" class="hover:text-texto">Productos</a>
+    <span aria-hidden="true"> / </span>
+    <span>{p.categoria}</span>
+  </nav>
+
+  <article class="mx-auto grid max-w-6xl gap-8 px-4 py-8 md:grid-cols-2">
+    <div class="aspect-square overflow-hidden rounded-2xl border border-borde bg-marino">
+      {
+        p.imagen ? (
+          <img src={p.imagen} alt={p.nombre} width="900" height="900" class="h-full w-full object-cover" />
+        ) : (
+          <span class="grid h-full place-items-center text-texto3">Sin foto todavía</span>
+        )
+      }
+    </div>
+
+    <div class="flex flex-col gap-4">
+      {
+        p.ejemplo && (
+          <p class="rounded-xl bg-oferta/15 px-4 py-3 text-sm font-semibold text-oferta">
+            Producto de ejemplo para probar la tienda. No se puede comprar.
+          </p>
+        )
+      }
+      <h1 class="text-3xl font-black leading-tight sm:text-4xl">{p.nombre}</h1>
+      <p class="text-lg text-texto2">{p.descripcionCorta}</p>
+
+      <p class="tabular-nums">
+        <span class="text-4xl font-black">{euros(p.precio)}</span>
+        {p.precioAnterior && <s class="ml-2 text-lg text-texto3">{euros(p.precioAnterior)}</s>}
+        <span class="block text-sm text-texto3">IVA incluido</span>
+      </p>
+
+      <ul class="grid gap-1 text-sm text-texto2">
+        <li>
+          Envío a España: {euros(p.envio.coste)} · llega en {p.envio.diasMin}–{p.envio.diasMax} días laborables
+        </li>
+        <li>14 días para devolverlo desde que lo recibes</li>
+      </ul>
+
+      <button
+        type="button"
+        data-anadir={p.slug}
+        disabled={!p.disponible}
+        class="mt-2 rounded-full bg-ambar px-8 py-4 text-lg font-black text-marino hover:bg-ambar-hondo disabled:opacity-40"
+      >
+        {p.disponible ? 'Añadir al carrito' : 'Agotado'}
+      </button>
+
+      <div class="mt-4 flex flex-col gap-3 border-t border-borde pt-6 text-texto2">
+        {p.descripcion.map((parrafo) => <p>{parrafo}</p>)}
+      </div>
+    </div>
+  </article>
+</Base>

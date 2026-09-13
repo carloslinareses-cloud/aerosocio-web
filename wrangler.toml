@@ -1,0 +1,52 @@
+#
+# AeroSocio · tienda en Cloudflare Workers + Static Assets
+#
+# Un solo Worker hace dos cosas:
+#   · sirve las páginas que genera Astro (carpeta dist/)
+#   · atiende /api/* para cobrar, que es lo único que no puede ser estático
+#
+# Mismo patrón que iphone.panavoy.com.
+
+name = "aerosocio-tienda"
+main = "worker/index.js"
+compatibility_date = "2025-05-01"
+account_id = "97daa1add9c0c3b4a47be1da0f52ad54"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+# 404 de verdad, no la portada. Si cualquier dirección inventada devolviera la
+# página de inicio con un 200, Google indexaría basura como si fueran productos.
+not_found_handling = "404-page"
+# El Worker solo entra para cobrar. Todo lo demás lo sirve Cloudflare directo,
+# que es más rápido y no gasta ejecuciones.
+run_worker_first = ["/api/*"]
+
+# Los pedidos. Jurisdicción UE a propósito: aquí se guardan nombre, dirección y
+# teléfono de clientes españoles, y así esos datos no salen de la Unión
+# Europea. La jurisdicción solo se puede fijar al crear la base.
+[[d1_databases]]
+binding = "DB"
+database_name = "aerosocio-pedidos"
+database_id = "95b7808c-8f1c-4207-8c0d-ae87e4434792"
+migrations_dir = "migrations"
+
+# Secretos del cobro (se ponen a mano, Cloudflare no deja leerlos después):
+#   npx wrangler secret put SUMUP_API_KEY
+#   npx wrangler secret put SUMUP_MERCHANT_CODE
+
+# ⚠️ EL DOMINIO TODAVÍA NO SE PUEDE CONECTAR.
+# aerosocio.es tiene el DNS en Hostinger (dns-parking.com) y apunta a GitHub
+# Pages. Un `custom_domain` de Cloudflare exige que la zona esté en Cloudflare,
+# así que desplegar con esto activado FALLARÍA. Mientras tanto la tienda se
+# publica en la dirección *.workers.dev.
+#
+# Cuando el dueño mueva los servidores de nombres a Cloudflare, se descomenta:
+#
+# [[routes]]
+# pattern = "aerosocio.es"
+# custom_domain = true
+#
+# [[routes]]
+# pattern = "www.aerosocio.es"
+# custom_domain = true

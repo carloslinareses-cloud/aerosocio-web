@@ -1,0 +1,242 @@
+---
+import Base from '../layouts/Base.astro';
+import { PRODUCTOS } from '../datos/productos.js';
+
+const catalogo = PRODUCTOS.map((p) => ({
+  slug: p.slug,
+  nombre: p.nombre,
+  precio: p.precio,
+  envio: p.envio.coste,
+}));
+---
+
+<Base titulo="Finalizar pedido" descripcion="Datos de envío y pago seguro de tu pedido en AeroSocio.">
+  <Fragment slot="head">
+    <meta name="robots" content="noindex" />
+  </Fragment>
+
+  <section class="mx-auto grid max-w-5xl gap-10 px-4 py-10 md:grid-cols-[1fr_20rem]">
+    <div>
+      <h1 class="text-3xl font-black sm:text-4xl">Finalizar pedido</h1>
+
+      <p id="vacio" class="mt-6 text-texto2" hidden>
+        No hay nada en tu carrito. <a href="/productos" class="font-bold text-ambar underline">Ver productos</a>
+      </p>
+
+      <form id="formulario" class="mt-6 grid gap-4" novalidate>
+        <h2 class="text-lg font-bold">Datos de envío</h2>
+
+        <label class="grid gap-1">
+          <span class="text-sm text-texto2">Nombre y apellidos</span>
+          <input id="nombre" name="nombre" autocomplete="name" required class="campo" />
+        </label>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <label class="grid gap-1">
+            <span class="text-sm text-texto2">Correo</span>
+            <input id="email" name="email" type="email" autocomplete="email" inputmode="email" required class="campo" />
+          </label>
+          <label class="grid gap-1">
+            <span class="text-sm text-texto2">Teléfono</span>
+            <input id="telefono" name="telefono" type="tel" autocomplete="tel" inputmode="tel" required class="campo" />
+          </label>
+        </div>
+        <label class="grid gap-1">
+          <span class="text-sm text-texto2">Calle y número</span>
+          <input id="direccion" name="direccion" autocomplete="address-line1" required class="campo" />
+        </label>
+        <label class="grid gap-1">
+          <span class="text-sm text-texto2">Piso, puerta… (opcional)</span>
+          <input id="piso" name="piso" autocomplete="address-line2" class="campo" />
+        </label>
+        <div class="grid gap-4 sm:grid-cols-3">
+          <label class="grid gap-1">
+            <span class="text-sm text-texto2">Código postal</span>
+            <input id="cp" name="cp" autocomplete="postal-code" inputmode="numeric" maxlength="5" required class="campo" />
+          </label>
+          <label class="grid gap-1">
+            <span class="text-sm text-texto2">Ciudad</span>
+            <input id="ciudad" name="ciudad" autocomplete="address-level2" required class="campo" />
+          </label>
+          <label class="grid gap-1">
+            <span class="text-sm text-texto2">Provincia</span>
+            <input id="provincia" name="provincia" autocomplete="address-level1" required class="campo" />
+          </label>
+        </div>
+        <p class="text-sm text-texto3">Enviamos a la Península y Baleares.</p>
+
+        <label class="flex items-start gap-3 text-sm text-texto2">
+          <input id="aceptaCondiciones" name="aceptaCondiciones" type="checkbox" class="mt-1 h-5 w-5 accent-[#f39c12]" />
+          <span>
+            He leído y acepto las <a href="/condiciones-de-venta" target="_blank" class="text-ambar underline">condiciones de venta</a>
+            y la información sobre el <a href="/desistimiento" target="_blank" class="text-ambar underline">derecho de desistimiento</a>.
+            Tus datos se tratan según la <a href="/privacidad" target="_blank" class="text-ambar underline">política de privacidad</a>.
+          </span>
+        </label>
+
+        <p id="error" role="alert" class="text-sm font-semibold text-oferta"></p>
+
+        <button id="continuar" type="submit" class="rounded-full bg-ambar px-8 py-4 text-lg font-black text-marino hover:bg-ambar-hondo disabled:opacity-40">
+          Continuar al pago
+        </button>
+      </form>
+
+      <!-- El widget de SumUp se monta aquí cuando el pedido ya está guardado. -->
+      <div id="pago" hidden class="mt-6">
+        <h2 class="text-lg font-bold">Pago seguro</h2>
+        <p class="mt-1 text-sm text-texto3">Lo procesa SumUp. Nosotros nunca vemos los datos de tu tarjeta.</p>
+        <div id="sumup-card" class="mt-4 rounded-2xl bg-white p-4"></div>
+        <p id="error-pago" role="alert" class="mt-3 text-sm font-semibold text-oferta"></p>
+      </div>
+
+      <div id="hecho" hidden class="mt-6 rounded-2xl border border-exito/40 bg-exito/10 p-6">
+        <h2 class="text-2xl font-black text-exito">¡Pedido confirmado!</h2>
+        <p class="mt-2 text-texto2">Te hemos enviado la confirmación por correo. Número de pedido:</p>
+        <p id="numero" class="mt-1 font-mono text-lg font-bold"></p>
+      </div>
+    </div>
+
+    <aside class="h-fit rounded-2xl border border-borde bg-tarjeta p-5">
+      <h2 class="font-bold">Tu pedido</h2>
+      <ul id="resumen" class="mt-4 grid gap-2 text-sm"></ul>
+      <div class="mt-4 grid gap-1 border-t border-borde pt-4 text-sm tabular-nums">
+        <p class="flex justify-between text-texto2"><span>Envío</span><span id="envio"></span></p>
+        <p class="flex justify-between text-lg font-black"><span>Total</span><span id="total"></span></p>
+        <p class="text-xs text-texto3">IVA incluido</p>
+      </div>
+    </aside>
+  </section>
+
+  <style>
+    .campo {
+      width: 100%;
+      border-radius: 0.75rem;
+      border: 1px solid var(--color-borde);
+      background: var(--color-marino);
+      color: var(--color-texto);
+      padding: 0.75rem 0.9rem;
+      outline: none;
+    }
+    .campo:focus {
+      border-color: var(--color-ambar);
+    }
+  </style>
+
+  <script type="application/json" id="catalogo" set:html={JSON.stringify(catalogo)} />
+
+  <script>
+    import { leerCarrito, vaciar } from '../scripts/carrito.js';
+    import { euros } from '../lib/dinero.js';
+
+    const SDK = 'https://gateway.sumup.com/gateway/ecom/card/v2/sdk.js';
+    const catalogo = new Map(JSON.parse(document.getElementById('catalogo').textContent).map((p) => [p.slug, p]));
+    const $ = (id) => document.getElementById(id);
+
+    // El resumen es informativo. El importe que se cobra lo decide el servidor.
+    const lineas = leerCarrito().filter((l) => catalogo.has(l.slug));
+    if (lineas.length === 0) {
+      $('vacio').hidden = false;
+      $('formulario').hidden = true;
+    }
+    let subtotal = 0;
+    let envio = 0;
+    $('resumen').innerHTML = lineas
+      .map((l) => {
+        const p = catalogo.get(l.slug);
+        subtotal += p.precio * l.cantidad;
+        envio = Math.max(envio, p.envio);
+        const nombre = p.nombre.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+        return `<li class="flex justify-between gap-3"><span>${l.cantidad} × ${nombre}</span><span class="tabular-nums">${euros(p.precio * l.cantidad)}</span></li>`;
+      })
+      .join('');
+    $('envio').textContent = euros(envio);
+    $('total').textContent = euros(subtotal + envio);
+
+    function cargarSdk() {
+      if (window.SumUpCard) return Promise.resolve();
+      return new Promise((ok, mal) => {
+        const s = document.createElement('script');
+        s.src = SDK;
+        s.onload = ok;
+        s.onerror = () => mal(new Error('No se pudo cargar el pago seguro. Revisa tu conexión.'));
+        document.head.appendChild(s);
+      });
+    }
+
+    const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    // El "success" del widget NO confirma el pago (lo dice la documentación de
+    // SumUp). Se pregunta al servidor, que pregunta a SumUp, unas cuantas veces.
+    async function comprobarPago(pedidoId) {
+      for (let intento = 0; intento < 10; intento++) {
+        const r = await fetch(`/api/pedido/${pedidoId}`).then((x) => x.json()).catch(() => ({}));
+        if (r.estado === 'pagado') return 'pagado';
+        if (r.estado === 'caducado' || r.estado === 'no_cuadra') return r.estado;
+        await espera(1500);
+      }
+      return 'pendiente';
+    }
+
+    $('formulario').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      $('error').textContent = '';
+      const boton = $('continuar');
+      boton.disabled = true;
+
+      const f = new FormData($('formulario'));
+      const cliente = Object.fromEntries(
+        ['nombre', 'email', 'telefono', 'direccion', 'piso', 'cp', 'ciudad', 'provincia'].map((k) => [k, f.get(k) || '']),
+      );
+      cliente.aceptaCondiciones = $('aceptaCondiciones').checked;
+
+      try {
+        const r = await fetch('/api/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lineas: leerCarrito(), cliente }),
+        });
+        const datos = await r.json().catch(() => ({}));
+        if (!r.ok || !datos.checkoutId) {
+          $('error').textContent = datos.error || 'No pudimos iniciar el pago. Inténtalo otra vez.';
+          boton.disabled = false;
+          return;
+        }
+
+        await cargarSdk();
+        $('formulario').hidden = true;
+        $('pago').hidden = false;
+
+        window.SumUpCard.mount({
+          id: 'sumup-card',
+          checkoutId: datos.checkoutId,
+          email: cliente.email,
+          locale: 'es-ES',
+          country: 'ES',
+          showSubmitButton: true,
+          onResponse: async (tipo, cuerpo) => {
+            if (tipo === 'success') {
+              $('error-pago').textContent = 'Confirmando el pago…';
+              const estado = await comprobarPago(datos.pedidoId);
+              if (estado === 'pagado') {
+                vaciar();
+                $('pago').hidden = true;
+                $('numero').textContent = datos.pedidoId.slice(0, 8).toUpperCase();
+                $('hecho').hidden = false;
+              } else if (estado === 'pendiente') {
+                $('error-pago').textContent =
+                  'Tu banco todavía no ha confirmado el pago. Si se completa, te llegará un correo; no vuelvas a pagar.';
+              } else {
+                $('error-pago').textContent = 'No pudimos confirmar el pago. Escríbenos y lo revisamos.';
+              }
+            } else if (tipo === 'error' || tipo === 'fail') {
+              $('error-pago').textContent =
+                cuerpo?.message || 'El pago no se pudo completar. Revisa los datos de la tarjeta o prueba con otra.';
+            }
+          },
+        });
+      } catch (err) {
+        $('error').textContent = err?.message || 'Sin conexión. Revisa tu internet e inténtalo otra vez.';
+        boton.disabled = false;
+      }
+    });
+  </script>
+</Base>

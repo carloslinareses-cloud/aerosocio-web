@@ -1,0 +1,112 @@
+---
+import '../styles/global.css';
+
+/**
+ * El marco de TODAS las páginas de la tienda.
+ *
+ * Lo que va en el <head> es lo que decide si una página aparece en Google y
+ * cómo se ve cuando alguien la comparte por WhatsApp: título, descripción,
+ * dirección canónica y la tarjeta de previsualización. Por eso es obligatorio
+ * pasarle `titulo` y `descripcion`, y no hay valores por defecto que dejen una
+ * página con el mismo título que todas las demás.
+ */
+interface Props {
+  titulo: string;
+  descripcion: string;
+  imagen?: string;
+}
+
+const { titulo, descripcion, imagen } = Astro.props;
+
+// La canónica sale del `site` de astro.config.mjs. Así la misma página no
+// compite contra sí misma en dos direcciones (con y sin barra, con parámetros).
+const canonica = new URL(Astro.url.pathname, Astro.site).href;
+const tituloCompleto = titulo === 'AeroSocio' ? titulo : `${titulo} · AeroSocio`;
+const imagenAbsoluta = imagen ? new URL(imagen, Astro.site).href : undefined;
+const anio = new Date().getFullYear();
+---
+
+<!doctype html>
+<html lang="es-ES">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{tituloCompleto}</title>
+    <meta name="description" content={descripcion} />
+    <link rel="canonical" href={canonica} />
+    <meta name="theme-color" content="#08101a" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="AeroSocio" />
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:title" content={tituloCompleto} />
+    <meta property="og:description" content={descripcion} />
+    <meta property="og:url" content={canonica} />
+    {imagenAbsoluta && <meta property="og:image" content={imagenAbsoluta} />}
+    <meta name="twitter:card" content={imagenAbsoluta ? 'summary_large_image' : 'summary'} />
+
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <slot name="head" />
+  </head>
+
+  <body class="flex min-h-dvh flex-col">
+    <header class="sticky top-0 z-20 border-b border-borde bg-noche/90 backdrop-blur">
+      <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+        <a href="/" class="text-xl font-black tracking-tight">
+          Aero<span class="text-ambar">Socio</span>
+        </a>
+        <nav aria-label="Principal" class="flex items-center gap-5 text-sm text-texto2">
+          <a href="/productos" class="hover:text-texto">Productos</a>
+          <a
+            href="/carrito"
+            class="flex items-center gap-2 rounded-full bg-ambar px-4 py-2 font-bold text-marino hover:bg-ambar-hondo"
+          >
+            Carrito
+            <span
+              data-contador-carrito
+              hidden
+              class="grid h-6 min-w-6 place-items-center rounded-full bg-marino px-1.5 text-xs text-ambar tabular-nums"
+            ></span>
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="flex-1">
+      <slot />
+    </main>
+
+    <footer class="mt-16 border-t border-borde bg-marino">
+      <div class="mx-auto grid max-w-6xl gap-8 px-4 py-10 text-sm sm:grid-cols-3">
+        <div>
+          <p class="text-lg font-black">Aero<span class="text-ambar">Socio</span></p>
+          <p class="mt-2 text-texto2">Envíos a toda España.</p>
+        </div>
+
+        <!--
+          Estas páginas no son opcionales para vender a consumidores en España:
+          la LSSI exige el aviso legal, el RGPD la privacidad, y la Ley de
+          Consumidores el derecho de desistimiento de 14 días con su formulario.
+        -->
+        <nav aria-label="Información legal" class="flex flex-col gap-2 text-texto2">
+          <a href="/envios-y-devoluciones" class="hover:text-texto">Envíos y devoluciones</a>
+          <a href="/desistimiento" class="hover:text-texto">Derecho de desistimiento</a>
+          <a href="/condiciones-de-venta" class="hover:text-texto">Condiciones de venta</a>
+        </nav>
+        <nav aria-label="Privacidad" class="flex flex-col gap-2 text-texto2">
+          <a href="/aviso-legal" class="hover:text-texto">Aviso legal</a>
+          <a href="/privacidad" class="hover:text-texto">Política de privacidad</a>
+          <a href="/cookies" class="hover:text-texto">Política de cookies</a>
+        </nav>
+      </div>
+      <p class="border-t border-borde px-4 py-4 text-center text-xs text-texto3">
+        © {anio} AeroSocio. Precios con IVA incluido.
+      </p>
+    </footer>
+
+    <script>
+      // El contador del carrito y los botones "Añadir" de todas las páginas.
+      import '../scripts/carrito.js';
+    </script>
+  </body>
+</html>
